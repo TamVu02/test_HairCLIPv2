@@ -16,10 +16,10 @@ class Options:
 		self.parser.add_argument('--ffhq_pca_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq_PCA.npz", type=str, help='Path to FFHQ PCA')
 
 		# arguments for image and latent dir path
-		self.parser.add_argument('--src_img_dir', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/ffqh_167", type=str, help='Folder of source image')
-		self.parser.add_argument('--src_latent_dir', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/ffqh_167", type=str, help='Folder of source latent')
-		self.parser.add_argument('--ref_img_dir', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/ffqh_167", type=str, help='Folder of reference image')
-		self.parser.add_argument('--ref_latent_dir', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/ffqh_167", type=str, help='Folder of reference latent')
+		self.parser.add_argument('--src_img_dir', default="/content/test_HairCLIPv2/test_images/src_img", type=str, help='Folder of source image')
+		self.parser.add_argument('--src_latent_dir', default="/content/test_HairCLIPv2/test_images/src_F", type=str, help='Folder of source latent')
+		self.parser.add_argument('--ref_img_dir', default="/content/test_HairCLIPv2/test_images/ref_img", type=str, help='Folder of reference image')
+		self.parser.add_argument('--ref_latent_dir', default="/content/test_HairCLIPv2/test_images/ref_latent", type=str, help='Folder of reference latent')
 
 		# arguments for embedding
 		self.parser.add_argument('--W_steps', default=1100, type=int, help='Step for W plus inversion')
