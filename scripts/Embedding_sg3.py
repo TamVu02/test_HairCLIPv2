@@ -54,7 +54,7 @@ class Embedding_sg3(nn.Module):
 
     def invert_image_in_W(self, image_path=None, latent_dir=None,device=None):
         im_name = os.path.splitext(os.path.basename(image_path))[0]
-        latent_W_path = os.path.join(latent_dir, f'{im_name[0]}.npy')
+        latent_W_path = os.path.join(latent_dir, f'{im_name}.npy')
         latent_in = torch.from_numpy(self.convert_npy_code(np.load(latent_W_path))).to(device)
         return latent_in
 
