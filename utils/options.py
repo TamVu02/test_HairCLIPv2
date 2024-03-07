@@ -10,19 +10,19 @@ class Options:
 
 	def initialize(self):
 		# arguments for pretrained model path
-		self.parser.add_argument('--stylegan_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq.pt", type=str, help='Path to StyleGAN model checkpoint')
-		self.parser.add_argument('--seg_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/seg.pth", type=str, help='Path to face parsing model checkpoint')
-		self.parser.add_argument('--bald_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/bald_proxy.pt", type=str, help='Path to balding model checkpoint')
-		self.parser.add_argument('--sketch_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/sketch_proxy.pt", type=str, help='Path to sketch2hair model checkpoint')
-		self.parser.add_argument('--ffhq_pca_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq_PCA.npz", type=str, help='Path to FFHQ PCA')
+		self.parser.add_argument('--stylegan_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq.pt", type=str, help='Path to StyleGAN model checkpoint')
+		self.parser.add_argument('--seg_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/seg.pth", type=str, help='Path to face parsing model checkpoint')
+		self.parser.add_argument('--bald_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/bald_proxy.pt", type=str, help='Path to balding model checkpoint')
+		self.parser.add_argument('--sketch_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/sketch_proxy.pt", type=str, help='Path to sketch2hair model checkpoint')
+		self.parser.add_argument('--ffhq_pca_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq_PCA.npz", type=str, help='Path to FFHQ PCA')
 
 		# StyleGAN3 setting
-		self.parser.add_argument('--stylegan3_weights', type=str, default='/content/gdrive/MyDrive/HairGAN/tam_proposed/restyle_e4e_ffhq.pt')
-		self.parser.add_argument('--generator_path3', type=str, default='/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/sg3-r-ffhq-1024.pt')#default=Path(model_paths["stylegan3_ffhq_pt"]))
+		self.parser.add_argument('--stylegan3_weights', type=str, default='/content/drive/MyDrive/HairGAN/tam_proposed/restyle_e4e_ffhq.pt')
+		self.parser.add_argument('--generator_path3', type=str, default='/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/sg3-r-ffhq-1024.pt')#default=Path(model_paths["stylegan3_ffhq_pt"]))
 		self.parser.add_argument('--generator_type', type=str, default=GeneratorType.ALIGNED)
 		self.parser.add_argument('--stylegan3_size', type=int, default=1024)
 		self.parser.add_argument('--stylegan3_truncation', type=float, default=0.7)
-		self.parser.add_argument('--latents_path', type=str, default='/content/gdrive/MyDrive/HairGAN/Others/Test_npy/test_sg3_outputs/W+',help='Folder of latent.npy')
+		self.parser.add_argument('--latents_path', type=str, default='/content/drive/MyDrive/HairGAN/Others/Test_npy/test_sg3_outputs/W+',help='Folder of latent.npy')
 
 		# arguments for image and latent dir path
 		self.parser.add_argument('--src_img_dir', default="/content/test_HairCLIPv2/test_images/src_img", type=str, help='Folder of source image')
