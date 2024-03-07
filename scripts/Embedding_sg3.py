@@ -28,7 +28,7 @@ class Embedding_sg3(nn.Module):
         factor = 1024 // 256
         self.downsample = BicubicDownSample(factor=factor, cuda=True)
 
-    def convert_npy_code(latent):
+    def convert_npy_code(self,latent):
         if latent.shape == (16, 512):
             latent = np.reshape(latent, (1, 16, 512))
         if latent.shape == (512,) or latent.shape == (1, 512):
