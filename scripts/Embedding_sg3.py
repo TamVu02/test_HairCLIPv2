@@ -14,9 +14,9 @@ import torch.nn.functional as F
 import os
 
 
-class Embedding(nn.Module):
+class Embedding_sg3(nn.Module):
     def __init__(self, opts, generator, mean_latent_code):
-        super(Embedding, self).__init__()
+        super(Embedding_sg3, self).__init__()
         self.opts = opts
         self.generator = generator
         self.mean_latent_code = mean_latent_code
