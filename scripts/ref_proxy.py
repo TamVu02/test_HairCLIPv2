@@ -9,12 +9,12 @@ from tqdm import tqdm
 from criteria.transfer_loss import TransferLossBuilder
 from PIL import Image
 class RefProxy(torch.nn.Module):
-    def __init__(self, opts, generator, seg, ii2s):
+    def __init__(self, opts, generator, seg, re4e):
         super(RefProxy, self).__init__()
         self.opts = opts
         self.generator = generator
         self.seg = seg
-        self.ii2s = ii2s
+        self.re4e = re4e
         self.mask_loss = self.weighted_ce_loss()
         self.transfer_loss_builder = TransferLossBuilder()
         self.delta_loss = torch.nn.MSELoss()
@@ -41,13 +41,13 @@ class RefProxy(torch.nn.Module):
         ref_PIL = Image.open(hairstyle_img_path).convert('RGB')
         ref_img = image_transform(ref_PIL).unsqueeze(0).cuda()
 
-        if not os.path.isfile(os.path.join(self.opts.ref_latent_dir, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")):
-            inverted_wplus_code = self.ii2s.invert_image_in_W(image_path=hairstyle_img_path)
+        if not os.path.isfile(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")):
+            inverted_wplus_code = self.re4e.invert_image_in_W(image_path=hairstyle_img_path)
             save_latent = inverted_wplus_code.detach().cpu().numpy()
-            save_latent_path = os.path.join(self.opts.ref_latent_dir, f'{os.path.splitext(hairstyle_ref_name)[0]}.npy')
+            save_latent_path = os.path.join(self.opts.latents_path, f'{os.path.splitext(hairstyle_ref_name)[0]}.npy')
             np.save(save_latent_path, save_latent)
 
-        latent_W_optimized = torch.from_numpy(np.load(os.path.join(self.opts.ref_latent_dir, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy"))).cuda().requires_grad_(True)
+        latent_W_optimized = torch.from_numpy(np.load(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy"))).cuda().requires_grad_(True)
         return ref_img, latent_W_optimized
 
     def inference_on_kp_extractor(self, input_image):
