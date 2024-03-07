@@ -34,6 +34,13 @@ class RefProxy(torch.nn.Module):
         for param in kp_extractor.face_alignment_net.parameters():
             param.requires_grad = False
         return kp_extractor
+    
+    def convert_npy_code(self,latent):
+        if latent.shape == (16, 512):
+            latent = np.reshape(latent, (1, 16, 512))
+        if latent.shape == (512,) or latent.shape == (1, 512):
+            latent = np.reshape(latent, (1, 1, 512)).repeat(16, axis=1)
+        return latent
 
     def load_hairstyle_ref(self, hairstyle_ref_name):
         image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
@@ -48,7 +55,7 @@ class RefProxy(torch.nn.Module):
             save_latent_path = os.path.join(self.opts.latents_path, f'{os.path.splitext(hairstyle_ref_name)[0]}.npy')
             np.save(save_latent_path, save_latent)
 
-        latent_W_optimized = torch.from_numpy(np.load(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy"))).cuda().requires_grad_(True)
+        latent_W_optimized = torch.from_numpy(self.convert_npy_code(np.load(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")))).cuda().requires_grad_(True)
         return ref_img, latent_W_optimized
 
     def inference_on_kp_extractor(self, input_image):
