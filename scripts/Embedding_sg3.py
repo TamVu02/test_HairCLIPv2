@@ -21,8 +21,20 @@ class Embedding_sg3(nn.Module):
         self.generator = generator
         self.mean_latent_code = mean_latent_code
         self.image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
+        self.load_PCA_model()
         self.load_downsampling()
         self.setup_embedding_loss_builder()
+
+    def load_PCA_model(self):
+        PCA_path = self.opts.ffhq_pca_path
+        if not os.path.isfile(PCA_path):
+            print("Can not find the PCA_PATH for FFHQ!")
+
+        PCA_model = np.load(PCA_path)
+        self.X_mean = torch.from_numpy(PCA_model['X_mean']).float().cuda()
+        self.X_comp = torch.from_numpy(PCA_model['X_comp']).float().cuda()
+        self.X_stdev = torch.from_numpy(PCA_model['X_stdev']).float().cuda()
+
 
     def load_downsampling(self):
         factor = 1024 // 256
