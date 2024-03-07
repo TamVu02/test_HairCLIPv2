@@ -22,7 +22,7 @@ class Options:
 		self.parser.add_argument('--generator_type', type=str, default=GeneratorType.ALIGNED)
 		self.parser.add_argument('--stylegan3_size', type=int, default=1024)
 		self.parser.add_argument('--stylegan3_truncation', type=float, default=0.7)
-		self.parser.add_argument('--latents_path', type=str, default='/content/drive/MyDrive/HairGAN/Others/Test_npy/test_sg3_outputs/W+',help='Folder of latent.npy')
+		self.parser.add_argument('--latents_path', type=str, default='/content/drive/MyDrive/HairGAN/Others/Test_npy/test_sg3_output/W+',help='Folder of latent.npy')
 
 		# arguments for image and latent dir path
 		self.parser.add_argument('--src_img_dir', default="/content/test_HairCLIPv2/test_images/src_img", type=str, help='Folder of source image')
