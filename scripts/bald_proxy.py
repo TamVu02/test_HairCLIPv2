@@ -23,8 +23,8 @@ class BaldProxy(torch.nn.Module):
         latent_infer = src_latent.clone().detach()
         with torch.no_grad():
             latent_infer[:, :8, :] += self.alpha * self.mapper_for_bald(mapper_input_tensor)
-            bald_target_img, _ = self.generator([latent_infer], input_is_latent=True, return_latents=False)
-            inv_source_img, _ = self.generator([src_latent], input_is_latent=True, return_latents=False)
+            bald_target_img, _ = self.generator.synthesis(latent_infer, noise_mode='const') #self.generator([latent_infer], input_is_latent=True, return_latents=False)
+            inv_source_img, _ = self.generator.synthesis(src_latent, noise_mode='const') #self.generator([src_latent], input_is_latent=True, return_latents=False)
 
         visual_list.append(process_display_input(inv_source_img))
         visual_list.append(process_display_input(bald_target_img))
