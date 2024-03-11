@@ -9,11 +9,11 @@ class Options:
 
 	def initialize(self):
 		# arguments for pretrained model path
-		self.parser.add_argument('--stylegan_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq.pt", type=str, help='Path to StyleGAN model checkpoint')
-		self.parser.add_argument('--seg_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/seg.pth", type=str, help='Path to face parsing model checkpoint')
-		self.parser.add_argument('--bald_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/bald_proxy.pt", type=str, help='Path to balding model checkpoint')
-		self.parser.add_argument('--sketch_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/sketch_proxy.pt", type=str, help='Path to sketch2hair model checkpoint')
-		self.parser.add_argument('--ffhq_pca_path', default="/content/gdrive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq_PCA.npz", type=str, help='Path to FFHQ PCA')
+		self.parser.add_argument('--stylegan_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq.pt", type=str, help='Path to StyleGAN model checkpoint')
+		self.parser.add_argument('--seg_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/seg.pth", type=str, help='Path to face parsing model checkpoint')
+		self.parser.add_argument('--bald_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/bald_proxy.pt", type=str, help='Path to balding model checkpoint')
+		self.parser.add_argument('--sketch_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/sketch_proxy.pt", type=str, help='Path to sketch2hair model checkpoint')
+		self.parser.add_argument('--ffhq_pca_path', default="/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/ffhq_PCA.npz", type=str, help='Path to FFHQ PCA')
 
 		# # StyleGAN3 setting
 		# self.parser.add_argument('--stylegan3_weights', type=str, default='/content/gdrive/MyDrive/HairGAN/tam_proposed/restyle_e4e_ffhq.pt')
