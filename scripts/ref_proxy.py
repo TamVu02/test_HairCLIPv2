@@ -9,12 +9,12 @@ from tqdm import tqdm
 from criteria.transfer_loss import TransferLossBuilder
 from PIL import Image
 class RefProxy(torch.nn.Module):
-    def __init__(self, opts, generator, seg, ii2s):
+    def __init__(self, opts, generator, seg, re4e):
         super(RefProxy, self).__init__()
         self.opts = opts
         self.generator = generator
         self.seg = seg
-        self.ii2s = ii2s
+        self.re4e = re4e
         self.mask_loss = self.weighted_ce_loss()
         self.transfer_loss_builder = TransferLossBuilder()
         self.delta_loss = torch.nn.MSELoss()
@@ -34,6 +34,13 @@ class RefProxy(torch.nn.Module):
         for param in kp_extractor.face_alignment_net.parameters():
             param.requires_grad = False
         return kp_extractor
+    
+    def convert_npy_code(self,latent):
+        if latent.shape == (16, 512):
+            latent = np.reshape(latent, (1, 16, 512))
+        if latent.shape == (512,) or latent.shape == (1, 512):
+            latent = np.reshape(latent, (1, 1, 512)).repeat(16, axis=1)
+        return latent
 
     def load_hairstyle_ref(self, hairstyle_ref_name):
         image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
@@ -41,13 +48,14 @@ class RefProxy(torch.nn.Module):
         ref_PIL = Image.open(hairstyle_img_path).convert('RGB')
         ref_img = image_transform(ref_PIL).unsqueeze(0).cuda()
 
-        if not os.path.isfile(os.path.join(self.opts.ref_latent_dir, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")):
-            inverted_wplus_code = self.ii2s.invert_image_in_W(image_path=hairstyle_img_path)
+        print(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy"))
+        if not os.path.isfile(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")):
+            inverted_wplus_code = self.re4e.invert_image_in_W(image_path=hairstyle_img_path)
             save_latent = inverted_wplus_code.detach().cpu().numpy()
-            save_latent_path = os.path.join(self.opts.ref_latent_dir, f'{os.path.splitext(hairstyle_ref_name)[0]}.npy')
+            save_latent_path = os.path.join(self.opts.latents_path, f'{os.path.splitext(hairstyle_ref_name)[0]}.npy')
             np.save(save_latent_path, save_latent)
 
-        latent_W_optimized = torch.from_numpy(np.load(os.path.join(self.opts.ref_latent_dir, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy"))).cuda().requires_grad_(True)
+        latent_W_optimized = torch.from_numpy(self.convert_npy_code(np.load(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")))).cuda().requires_grad_(True)
         return ref_img, latent_W_optimized
 
     def inference_on_kp_extractor(self, input_image):
@@ -74,7 +82,7 @@ class RefProxy(torch.nn.Module):
         for i in pbar:
             optimizer.zero_grad()
             latent_in = torch.cat([latent_W_optimized[:, :6, :], latent_end], dim=1)
-            img_gen, _ = self.generator([latent_in], input_is_latent=True, randomize_noise=False)
+            img_gen = self.generator.synthesis(latent_in, noise_mode='const')
             img_gen_256, gen_hairmask_256 = self.gen_256_img_hairmask(img_gen)
             hair_style_loss = self.transfer_loss_builder.style_loss(ref_img_256, img_gen_256, mask1=ref_hairmask_256, mask2=gen_hairmask_256)
 
@@ -96,6 +104,6 @@ class RefProxy(torch.nn.Module):
             pbar.set_description((f"ref_loss: {loss.item():.4f};"))
             if (i % visual_interval == 0) or (i == (self.opts.steps_ref-1)):
                 with torch.no_grad():
-                    img_gen, _ = self.generator([latent_in], input_is_latent=True, randomize_noise=False)
+                    img_gen = self.generator.synthesis(latent_in, noise_mode='const')
                     visual_list.append(process_display_input(img_gen))
         return latent_in, visual_list
