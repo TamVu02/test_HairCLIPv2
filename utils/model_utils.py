@@ -1,6 +1,7 @@
 import torch
 from models.stylegan2.model import Generator
 from models.face_parsing.model import BiSeNet
+from utils.inference_utils import load_encoder
 
 def load_base_models(opts):
     ckpt = opts.stylegan_path
@@ -20,3 +21,21 @@ def load_base_models(opts):
     seg = seg.cuda()
 
     return g_ema, mean_latent, seg
+
+def load_sg3_models(opts):
+    generator,opts_sg3 = load_encoder(checkpoint_path=opts.stylegan3_weights,generator_path=opts.generator_path3)
+    # generator = net.decoder
+    # generator.eval()
+    # generator = generator.cuda()
+
+    mean_latent = generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda()
+
+    seg_pretrained_path = opts.seg_path
+    seg = BiSeNet(n_classes=16)
+    seg.load_state_dict(torch.load(seg_pretrained_path), strict=False)
+    for param in seg.parameters():
+        param.requires_grad = False
+    seg.eval()
+    seg = seg.cuda()
+
+    return generator, opts_sg3, mean_latent, seg

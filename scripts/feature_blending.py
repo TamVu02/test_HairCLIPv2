@@ -5,9 +5,9 @@ import torch.nn.functional as F
 def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_mask, latent_bald, latent_global=None, latent_local=None, local_blending_mask=None):
 
     if latent_global is not None:
-        bald_feature, _ = generator([latent_bald], input_is_latent=True, return_latents=False, start_layer=0, end_layer=3)
-        global_feature, _ = generator([latent_global], input_is_latent=True, return_latents=False, start_layer=0, end_layer=3)
-        global_proxy, _ = generator([latent_global], input_is_latent=True, randomize_noise=False)
+        bald_feature,_ = generator(latent_bald, input_code=True, return_latents=False)#generator([latent_bald], input_is_latent=True, return_latents=False, start_layer=0, end_layer=3)
+        global_feature,_ = generator(latent_global, input_code=True, return_latents=False)#generator([latent_global], input_is_latent=True, return_latents=False, start_layer=0, end_layer=3)
+        global_proxy,_ = generator(latent_global, input_code=True, return_latents=False)#generator([latent_global], input_is_latent=True, randomize_noise=False)
         global_proxy_seg = torch.argmax(seg(global_proxy)[1], dim=1).unsqueeze(1).long()
 
         ear_mask = torch.where(visual_mask==6, torch.ones_like(visual_mask), torch.zeros_like(visual_mask))[0].cpu().numpy()
@@ -23,14 +23,14 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
         src_feature = global_feature * global_hair_mask_down + src_feature * (1-global_hair_mask_down)
 
     if latent_local is not None:
-        local_feature, _ = generator([latent_local], input_is_latent=True, return_latents=False, start_layer=0, end_layer=3)
+        local_feature,_ = generator(latent_local, input_code=True, return_latents=False)#generator([latent_local], input_is_latent=True, return_latents=False, start_layer=0, end_layer=3)
         local_blending_mask = torch.from_numpy(local_blending_mask[:,:,0]).unsqueeze(0).unsqueeze(0).long().cuda()
         local_blending_mask = torch.where(local_blending_mask==1, torch.ones_like(local_blending_mask), torch.zeros_like(local_blending_mask))
         local_blending_mask_down = F.interpolate(local_blending_mask.float(), size=(32, 32), mode='bicubic')
         src_feature = local_feature * local_blending_mask_down + src_feature * (1-local_blending_mask_down)
 
     with torch.no_grad():
-        img_gen_blend, _ = generator([src_latent], input_is_latent=True, randomize_noise=False, start_layer=4, end_layer=8, layer_in=src_feature)
+        img_gen_blend,_ = generator(src_latent, input_code=True, return_latents=False)#generator([src_latent], input_is_latent=True, randomize_noise=False, start_layer=4, end_layer=8, layer_in=src_feature)
     return src_feature, img_gen_blend
 
 def color_feature_blending(generator, seg, edited_hairstyle_img, src_latent, color_latent_in, latent_F):
@@ -40,8 +40,8 @@ def color_feature_blending(generator, seg, edited_hairstyle_img, src_latent, col
     enlarged_hair_mask = torch.from_numpy(enlarged_hair_mask_np).unsqueeze(0).unsqueeze(0).cuda()
     final_hair_mask = F.interpolate(enlarged_hair_mask.float(), size=(1024, 1024)).long().clone().detach()
 
-    source_feature, _ = generator([src_latent], input_is_latent=True, randomize_noise=False, return_latents=False, start_layer=4, end_layer=6, layer_in=latent_F)
-    color_feature, _ = generator([color_latent_in], input_is_latent=True, randomize_noise=False, return_latents=False, start_layer=4, end_layer=6, layer_in=latent_F)
+    source_feature,_ = generator(src_latent, input_code=True, return_latents=False)#generator([src_latent], input_is_latent=True, randomize_noise=False, return_latents=False, start_layer=4, end_layer=6, layer_in=latent_F)
+    color_feature,_ = generator(color_latent_in, input_code=True, return_latents=False)#generator([color_latent_in], input_is_latent=True, randomize_noise=False, return_latents=False, start_layer=4, end_layer=6, layer_in=latent_F)
     final_hair_mask_down = F.interpolate(final_hair_mask.float(), size=(256, 256), mode='bicubic')
     color_feature = color_feature * final_hair_mask_down + source_feature * (1-final_hair_mask_down)
     return color_feature, final_hair_mask
