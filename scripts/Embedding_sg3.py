@@ -90,13 +90,13 @@ class Embedding_sg3(nn.Module):
                 'gen_im_H': gen_im,
                 'gen_im_L': self.downsample(gen_im)
             }
+            print(gen_im.shape)
             loss, loss_dic = self.cal_loss(im_dict, latent_in)
             loss.backward()
             optimizer_FS.step()
             pbar.set_description(
                 'Embedding: Loss: {:.3f}, L2 loss: {:.3f}, Perceptual loss: {:.3f}, P-norm loss: {:.3f}'
                 .format(loss, loss_dic['l2'], loss_dic['percep'], loss_dic['p-norm']))
-            print(gen_im.shape)
         return latent_in, latent_F
 
 
