@@ -90,6 +90,7 @@ class Embedding_sg3(nn.Module):
                 'gen_im_H': gen_im,
                 'gen_im_L': self.downsample(gen_im)
             }
+            print(gen_im.shape)
             loss, loss_dic = self.cal_loss(im_dict, latent_in)
             loss.backward()
             optimizer_FS.step()
