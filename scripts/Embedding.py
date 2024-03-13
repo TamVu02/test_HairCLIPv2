@@ -89,6 +89,7 @@ class Embedding(nn.Module):
             optimizer_W.step()
             pbar.set_description('Embedding: Loss: {:.3f}, L2 loss: {:.3f}, Perceptual loss: {:.3f}, P-norm loss: {:.3f}'\
                 .format(loss, loss_dic['l2'], loss_dic['percep'], loss_dic['p-norm']))
+            print(gen_im.shape)
         return latent_in
 
     def invert_image_in_FS(self, image_path=None):
@@ -118,6 +119,7 @@ class Embedding(nn.Module):
             pbar.set_description(
                 'Embedding: Loss: {:.3f}, L2 loss: {:.3f}, Perceptual loss: {:.3f}, P-norm loss: {:.3f}'
                 .format(loss, loss_dic['l2'], loss_dic['percep'], loss_dic['p-norm']))
+            print(gen_im.shape)
         return latent_in, latent_F
 
 
