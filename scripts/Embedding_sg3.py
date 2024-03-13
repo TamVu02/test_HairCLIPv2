@@ -76,21 +76,20 @@ class Embedding_sg3(nn.Module):
         ref_im_H = self.image_transform(ref_im.resize((1024, 1024), PIL.Image.LANCZOS)).unsqueeze(0)
 
         latent_W = self.invert_image_in_W(image_path=image_path, latent_dir=self.opts.latents_path, device='cuda').clone().detach()
-        F_init,_ = self.generator(latent_W, input_code=True, return_latents=True)
+        F_init,_ = self.generator(latent_W, input_code=True, return_latents=True, resize=False)
         optimizer_FS, latent_F, latent_S = self.setup_FS_optimizer(latent_W, F_init)
 
         pbar = tqdm(range(self.opts.FS_steps), desc='Embedding', leave=False)
         for step in pbar:
             optimizer_FS.zero_grad()
             latent_in = torch.stack(latent_S).unsqueeze(0)
-            gen_im,_ = self.generator(latent_in, input_code=True, return_latents=True)
+            gen_im,_ = self.generator(latent_in, input_code=True, return_latents=True, resize=False)
             im_dict = {
                 'ref_im_H': ref_im_H.cuda(),
                 'ref_im_L': ref_im_L.cuda(),
                 'gen_im_H': gen_im,
                 'gen_im_L': self.downsample(gen_im)
             }
-            print(gen_im.shape)
             loss, loss_dic = self.cal_loss(im_dict, latent_in)
             loss.backward()
             optimizer_FS.step()
