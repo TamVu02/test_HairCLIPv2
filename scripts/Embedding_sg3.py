@@ -50,8 +50,7 @@ class Embedding_sg3(nn.Module):
     def get_avg_img(self,generator):
         avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
                               input_code=True,
-                              return_latents=False,
-                              resize=False)[0]
+                              return_latents=False)[0]
         return avg_image
 
 
@@ -92,20 +91,22 @@ class Embedding_sg3(nn.Module):
         for step in pbar:
             if(step==0):
                 avg_image = self.get_avg_img(self.generator)
-                avg_image = avg_image.unsqueeze(0).repeat(ref_im_H.shape[0], 1, 1, 1).cuda().float()
-                x_input = torch.cat([ref_im_H.cuda().float(), avg_image], dim=1)
+                avg_image = avg_image.unsqueeze(0).repeat(ref_im_L.shape[0], 1, 1, 1).to('cuda').float().detach()
+                x_input = torch.cat([ref_im_L, avg_image], dim=1)
             else:
-                x_input = torch.cat([ref_im_H, gen_im], dim=1)
+                x_input = torch.cat([ref_im_L, gen_im], dim=1)
 
             optimizer_FS.zero_grad()
             latent_in = torch.stack(latent_S).unsqueeze(0)
-            gen_im,latent = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
+            gen_im,latent = self.generator(x_input,latent=latent_in, return_latents=True)
+            gen_im = self.generator.face_pool(gen_im)
             im_dict = {
                 'ref_im_H': ref_im_H.cuda(),
                 'ref_im_L': ref_im_L.cuda(),
                 'gen_im_H': gen_im,
                 'gen_im_L': self.downsample(gen_im)
             }
+
             loss, loss_dic = self.cal_loss(im_dict, latent_in)
             loss.backward()
             optimizer_FS.step()
