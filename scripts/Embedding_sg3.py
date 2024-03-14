@@ -50,7 +50,8 @@ class Embedding_sg3(nn.Module):
     def get_avg_img(self,generator):
         avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
                               input_code=True,
-                              return_latents=False)[0]
+                              return_latents=False,
+                              resize=False)[0]
         return avg_image
 
 
@@ -98,8 +99,7 @@ class Embedding_sg3(nn.Module):
 
             optimizer_FS.zero_grad()
             latent_in = torch.stack(latent_S).unsqueeze(0)
-            gen_im,latent = self.generator(x_input,latent=latent_in, return_latents=True)
-            gen_im = self.generator.face_pool(gen_im)
+            gen_im,latent = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
             im_dict = {
                 'ref_im_H': ref_im_H.cuda(),
                 'ref_im_L': ref_im_L.cuda(),
