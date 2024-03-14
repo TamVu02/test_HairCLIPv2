@@ -50,8 +50,7 @@ class Embedding_sg3(nn.Module):
     def get_avg_img(self,generator):
         avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
                               input_code=True,
-                              return_latents=False,
-                              resize=False)[0]
+                              return_latents=False)[0]
         return avg_image
 
 
@@ -79,8 +78,8 @@ class Embedding_sg3(nn.Module):
 
     def invert_image_in_FS(self, image_path=None):
         ref_im = Image.open(image_path).convert('RGB')
-        ref_im_L = self.image_transform(ref_im.resize((256, 256), PIL.Image.LANCZOS)).unsqueeze(0)
-        ref_im_H = self.image_transform(ref_im.resize((1024, 1024), PIL.Image.LANCZOS)).unsqueeze(0).to('cuda')
+        ref_im_L = self.image_transform(ref_im.resize((256, 256), PIL.Image.LANCZOS)).unsqueeze(0).to('cuda')
+        ref_im_H = self.image_transform(ref_im.resize((1024, 1024), PIL.Image.LANCZOS)).unsqueeze(0)
 
         latent_W = self.invert_image_in_W(image_path=image_path, latent_dir=self.opts.latents_path, device='cuda').clone().detach()
         F_init = self.generator.decoder.synthesis(latent_W, noise_mode='const')
@@ -93,9 +92,9 @@ class Embedding_sg3(nn.Module):
             if(step==0):
                 avg_image = self.get_avg_img(self.generator)
                 avg_image = avg_image.unsqueeze(0).repeat(ref_im_L.shape[0], 1, 1, 1)
-                x_input = torch.cat([ref_im_H, avg_image], dim=1)
+                x_input = torch.cat([ref_im_L, avg_image], dim=1)
             else:
-                x_input = torch.cat([ref_im_H, gen_im], dim=1)
+                x_input = torch.cat([ref_im_L, gen_im], dim=1)
 
             optimizer_FS.zero_grad()
             latent_in = torch.stack(latent_S).unsqueeze(0)
@@ -113,6 +112,7 @@ class Embedding_sg3(nn.Module):
             pbar.set_description(
                 'Embedding: Loss: {:.3f}, L2 loss: {:.3f}, Perceptual loss: {:.3f}, P-norm loss: {:.3f}'
                 .format(loss, loss_dic['l2'], loss_dic['percep'], loss_dic['p-norm']))
+            gen_im = self.generator.face_pool(gen_im)
         return latent_in, latent_F
 
 
