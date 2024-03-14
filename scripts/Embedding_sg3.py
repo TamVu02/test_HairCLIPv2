@@ -95,6 +95,7 @@ class Embedding_sg3(nn.Module):
                 x_input = torch.cat([ref_im_L, avg_image], dim=1)
             else:
                 gen_im = self.generator.face_pool(gen_im)
+                print(gen_im)
                 x_input = torch.cat([ref_im_L, gen_im], dim=1)
 
             optimizer_FS.zero_grad()
