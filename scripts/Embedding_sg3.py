@@ -106,7 +106,7 @@ class Embedding_sg3(nn.Module):
             }
 
             loss, loss_dic = self.cal_loss(im_dict, latent_in)
-            gen_im = self.generator.face_pool(gen_im)
+            gen_im = self.generator.face_pool(gen_im).detach().clone()
             loss.backward()
             optimizer_FS.step()
             pbar.set_description(
