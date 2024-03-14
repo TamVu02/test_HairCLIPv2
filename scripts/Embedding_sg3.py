@@ -92,8 +92,8 @@ class Embedding_sg3(nn.Module):
         for step in pbar:
             if(step==0):
                 avg_image = self.get_avg_img(self.generator)
-                avg_image = avg_image.unsqueeze(0).repeat(ref_im_H.shape[0], 1, 1, 1)
-                x_input = torch.cat([ref_im_H, avg_image], dim=1)
+                avg_image = avg_image.unsqueeze(0).repeat(ref_im_H.shape[0], 1, 1, 1).cuda().float()
+                x_input = torch.cat([ref_im_H.cuda().float(), avg_image], dim=1)
             else:
                 x_input = torch.cat([ref_im_H, gen_im], dim=1)
 
