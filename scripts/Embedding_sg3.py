@@ -94,8 +94,6 @@ class Embedding_sg3(nn.Module):
                 avg_image = avg_image.unsqueeze(0).repeat(ref_im_L.shape[0], 1, 1, 1)
                 x_input = torch.cat([ref_im_L, avg_image], dim=1)
             else:
-                gen_im = self.generator.face_pool(gen_im)
-                print(gen_im)
                 x_input = torch.cat([ref_im_L, gen_im], dim=1)
 
             optimizer_FS.zero_grad()
@@ -109,6 +107,7 @@ class Embedding_sg3(nn.Module):
             }
 
             loss, loss_dic = self.cal_loss(im_dict, latent_in)
+            gen_im = self.generator.face_pool(gen_im)
             loss.backward()
             optimizer_FS.step()
             pbar.set_description(
