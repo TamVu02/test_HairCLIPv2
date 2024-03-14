@@ -46,6 +46,13 @@ class Embedding_sg3(nn.Module):
         if latent.shape == (512,) or latent.shape == (1, 512):
             latent = np.reshape(latent, (1, 1, 512)).repeat(16, axis=1)
         return latent
+    
+    def get_avg_img(self,generator):
+        avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
+                              input_code=True,
+                              return_latents=False,
+                              resize=False)[0]
+        return avg_image
 
 
     def setup_FS_optimizer(self, latent_W, F_init):
@@ -76,14 +83,23 @@ class Embedding_sg3(nn.Module):
         ref_im_H = self.image_transform(ref_im.resize((1024, 1024), PIL.Image.LANCZOS)).unsqueeze(0)
 
         latent_W = self.invert_image_in_W(image_path=image_path, latent_dir=self.opts.latents_path, device='cuda').clone().detach()
-        F_init,_ = self.generator(latent_W, input_code=True, return_latents=True, resize=False)
+        F_init = self.generator.decoder.synthesis(latent_W, noise_mode='const')
         optimizer_FS, latent_F, latent_S = self.setup_FS_optimizer(latent_W, F_init)
+
+        gen_im,latent=None
 
         pbar = tqdm(range(self.opts.FS_steps), desc='Embedding', leave=False)
         for step in pbar:
+            if(step==0):
+                avg_image = self.get_avg_img(self.generator)
+                avg_image = avg_image.unsqueeze(0).repeat(ref_im_H.shape[0], 1, 1, 1)
+                x_input = torch.cat([ref_im_H, avg_image], dim=1)
+            else:
+                x_input = torch.cat([ref_im_H, gen_im], dim=1)
+
             optimizer_FS.zero_grad()
             latent_in = torch.stack(latent_S).unsqueeze(0)
-            gen_im,_ = self.generator(latent_in, input_code=True, return_latents=True, resize=False)
+            gen_im,latent = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
             im_dict = {
                 'ref_im_H': ref_im_H.cuda(),
                 'ref_im_L': ref_im_L.cuda(),
