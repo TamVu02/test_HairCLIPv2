@@ -89,15 +89,14 @@ class Embedding_sg3(nn.Module):
 
         pbar = tqdm(range(self.opts.FS_steps), desc='Embedding', leave=False)
         for step in pbar:
+            optimizer_FS.zero_grad()
+            latent_in = torch.stack(latent_S).unsqueeze(0)
             if(step==0):
                 avg_image = self.get_avg_img(self.generator)
                 avg_image = avg_image.unsqueeze(0).repeat(ref_im_L.shape[0], 1, 1, 1)
                 x_input = torch.cat([ref_im_L, avg_image], dim=1)
             else:
                 x_input = torch.cat([ref_im_L, gen_im], dim=1)
-
-            optimizer_FS.zero_grad()
-            latent_in = torch.stack(latent_S).unsqueeze(0)
             gen_im,latent = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
             im_dict = {
                 'ref_im_H': ref_im_H.cuda(),
