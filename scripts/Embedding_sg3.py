@@ -86,7 +86,7 @@ class Embedding_sg3(nn.Module):
         F_init = self.generator.decoder.synthesis(latent_W, noise_mode='const')
         optimizer_FS, latent_F, latent_S = self.setup_FS_optimizer(latent_W, F_init)
 
-        gen_im,latent=None
+        gen_im,latent=None,None
 
         pbar = tqdm(range(self.opts.FS_steps), desc='Embedding', leave=False)
         for step in pbar:
