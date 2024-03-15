@@ -41,6 +41,12 @@ class RefProxy(torch.nn.Module):
         if latent.shape == (512,) or latent.shape == (1, 512):
             latent = np.reshape(latent, (1, 1, 512)).repeat(16, axis=1)
         return latent
+    
+    def get_avg_img(self,generator):
+        avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
+                              input_code=True,
+                              return_latents=False)[0]
+        return avg_image
 
     def load_hairstyle_ref(self, hairstyle_ref_name):
         image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
@@ -71,6 +77,7 @@ class RefProxy(torch.nn.Module):
     def forward(self, hairstyle_ref_name, src_image, painted_mask=None):
         ref_img, latent_W_optimized = self.load_hairstyle_ref(hairstyle_ref_name)
         ref_img_256, ref_hairmask_256 = self.gen_256_img_hairmask(ref_img)
+        ref_img_256 = ref_img_256.to('cuda')
         optimizer = torch.optim.Adam([latent_W_optimized], lr=self.opts.lr_ref)
         latent_end = latent_W_optimized[:, 4:, :].clone().detach()
         latent_prev = latent_W_optimized[:, :4, :].clone().detach()
@@ -82,7 +89,13 @@ class RefProxy(torch.nn.Module):
         for i in pbar:
             optimizer.zero_grad()
             latent_in = torch.cat([latent_W_optimized[:, :4, :], latent_end], dim=1)
-            img_gen,_ = self.generator(latent_in, input_code=True, return_latents=True, resize=False)
+            if(i==0):
+                avg_image = self.get_avg_img(self.generator)
+                avg_image = avg_image.unsqueeze(0).repeat(ref_img_256.shape[0], 1, 1, 1)
+                x_input = torch.cat([ref_img_256, avg_image], dim=1)
+            else:
+                x_input = torch.cat([ref_img_256, img_gen], dim=1)
+            img_gen,_ = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
             img_gen_256, gen_hairmask_256 = self.gen_256_img_hairmask(img_gen)
             hair_style_loss = self.transfer_loss_builder.style_loss(ref_img_256, img_gen_256, mask1=ref_hairmask_256, mask2=gen_hairmask_256)
 
@@ -104,6 +117,6 @@ class RefProxy(torch.nn.Module):
             pbar.set_description((f"ref_loss: {loss.item():.4f};"))
             if (i % visual_interval == 0) or (i == (self.opts.steps_ref-1)):
                 with torch.no_grad():
-                    img_gen,_ = self.generator(latent_in, input_code=True, rreturn_latents=True, resize=False)
+                    img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
                     visual_list.append(process_display_input(img_gen))
         return latent_in, visual_list
