@@ -86,6 +86,7 @@ class RefProxy(torch.nn.Module):
         visual_list = []
         visual_interval = self.opts.steps_ref // self.opts.visual_num_ref
         pbar = tqdm(range(self.opts.steps_ref))
+        img_gen=None
         for i in pbar:
             optimizer.zero_grad()
             latent_in = torch.cat([latent_W_optimized[:, :4, :], latent_end], dim=1)
@@ -119,4 +120,5 @@ class RefProxy(torch.nn.Module):
                 with torch.no_grad():
                     img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
                     visual_list.append(process_display_input(img_gen))
+            img_gen = self.generator.face_pool(img_gen).detach().clone()
         return latent_in, visual_list
