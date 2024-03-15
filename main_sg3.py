@@ -7,6 +7,7 @@ from torchvision import transforms
 from scripts.Embedding_sg3 import Embedding_sg3
 from scripts.text_proxy import TextProxy
 from scripts.ref_proxy import RefProxy
+from scripts.bald_proxy import BaldProxy
 from scripts.feature_blending import hairstyle_feature_blending
 from utils.seg_utils import vis_seg
 from utils.mask_ui import painting_mask
@@ -29,3 +30,12 @@ if not os.path.isfile(os.path.join(opts.src_latent_dir, f"{src_name}.npz")):
     save_latent_path = os.path.join(opts.src_latent_dir, f'{src_name}.npz')
     np.savez(save_latent_path, latent_in=inverted_latent_w_plus.detach().cpu().numpy(),
                 latent_F=inverted_latent_F.detach().cpu().numpy())
+
+src_latent = torch.from_numpy(np.load(f'{opts.src_latent_dir}/{src_name}.npz')['latent_in']).cuda()
+src_feature = torch.from_numpy(np.load(f'{opts.src_latent_dir}/{src_name}.npz')['latent_F']).cuda()
+src_image = image_transform(Image.open(f'{opts.src_img_dir}/{src_name}.png').convert('RGB')).unsqueeze(0).cuda()
+input_mask = torch.argmax(seg(src_image)[1], dim=1).long().clone().detach()
+
+text_proxy = TextProxy(opts, generator, seg, mean_latent_code)
+ref_proxy = RefProxy(opts, generator, seg, re4e)
+bald_proxy = BaldProxy(generator, opts.bald_path)
