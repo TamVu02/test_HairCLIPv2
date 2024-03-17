@@ -32,13 +32,14 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
         global_proxy = generator.decoder.synthesis(latent_global, noise_mode='const')
         global_proxy_seg = torch.argmax(seg(global_proxy)[1], dim=1).unsqueeze(1).long()
 
-        #ear_mask = torch.where(visual_mask==6, torch.ones_like(visual_mask), torch.zeros_like(visual_mask))[0].cpu().numpy()
-        #hair_mask = torch.where(visual_mask==10, torch.ones_like(visual_mask), torch.zeros_like(visual_mask))[0].cpu().numpy()
-        #hair_ear_mask = ear_mask + hair_mask
-        #bald_blending_mask = dliate_erode(hair_ear_mask.astype('uint8'), 30)
-        #bald_blending_mask = torch.from_numpy(bald_blending_mask).unsqueeze(0).unsqueeze(0).cuda()
-        #bald_blending_mask_down = F.interpolate(bald_blending_mask.float(), size=(1024, 1024), mode='bicubic')
+        ear_mask = torch.where(visual_mask==6, torch.ones_like(visual_mask), torch.zeros_like(visual_mask))[0].cpu().numpy()
+        hair_mask = torch.where(visual_mask==10, torch.ones_like(visual_mask), torch.zeros_like(visual_mask))[0].cpu().numpy()
+        hair_ear_mask = ear_mask + hair_mask
+        bald_blending_mask = dliate_erode(hair_ear_mask.astype('uint8'), 30)
+        bald_blending_mask = torch.from_numpy(bald_blending_mask).unsqueeze(0).unsqueeze(0).cuda()
+        bald_blending_mask_down = F.interpolate(bald_blending_mask.float(), size=(1024, 1024), mode='bicubic')
         #src_feature = bald_feature * bald_blending_mask_down + src_feature * (1-bald_blending_mask_down)
+        src_feature = src_feature * (1-bald_blending_mask_down)
 
         global_hair_mask = torch.where(global_proxy_seg==10, torch.ones_like(global_proxy_seg), torch.zeros_like(global_proxy_seg))
         global_hair_mask_down = F.interpolate(global_hair_mask.float(), size=(1024, 1024), mode='bicubic')

@@ -74,13 +74,13 @@ class RefProxy(torch.nn.Module):
         input_img_256 = F.interpolate(input_image, size=(256, 256))
         return input_img_256, input_hairmask_256
 
-    def forward(self, hairstyle_ref_name, src_image, painted_mask=None):
+    def forward(self, hairstyle_ref_name, src_image, painted_mask=None,m_style=6):
         ref_img, latent_W_optimized = self.load_hairstyle_ref(hairstyle_ref_name)
         ref_img_256, ref_hairmask_256 = self.gen_256_img_hairmask(ref_img)
         ref_img_256 = ref_img_256.to('cuda')
         optimizer = torch.optim.Adam([latent_W_optimized], lr=self.opts.lr_ref)
-        latent_end = latent_W_optimized[:, 5:, :].clone().detach()
-        latent_prev = latent_W_optimized[:, :5, :].clone().detach()
+        latent_end = latent_W_optimized[:, m_style:, :].clone().detach()
+        latent_prev = latent_W_optimized[:, :m_style, :].clone().detach()
         src_kp = self.inference_on_kp_extractor(src_image).clone().detach()
 
         visual_list = []
@@ -89,7 +89,7 @@ class RefProxy(torch.nn.Module):
         img_gen=None
         for i in pbar:
             optimizer.zero_grad()
-            latent_in = torch.cat([latent_W_optimized[:, :5, :], latent_end], dim=1)
+            latent_in = torch.cat([latent_W_optimized[:, :m_style, :], latent_end], dim=1)
             if(i==0):
                 avg_image = self.get_avg_img(self.generator)
                 avg_image = avg_image.unsqueeze(0).repeat(ref_img_256.shape[0], 1, 1, 1)
@@ -100,7 +100,7 @@ class RefProxy(torch.nn.Module):
             img_gen_256, gen_hairmask_256 = self.gen_256_img_hairmask(img_gen)
             hair_style_loss = self.transfer_loss_builder.style_loss(ref_img_256, img_gen_256, mask1=ref_hairmask_256, mask2=gen_hairmask_256)
 
-            delta_w_loss = self.delta_loss(latent_W_optimized[:, :5, :], latent_prev)
+            delta_w_loss = self.delta_loss(latent_W_optimized[:, :m_style, :], latent_prev)
 
             gen_kp = self.inference_on_kp_extractor(img_gen)
             kp_loss = self.landmark_loss(src_kp[:, :], gen_kp[:, :])
@@ -112,7 +112,7 @@ class RefProxy(torch.nn.Module):
                 hair_mask_loss = self.mask_loss(down_seg, painted_mask)
                 loss += self.opts.hair_mask_lambda_ref * hair_mask_loss
             
-            latent_prev = latent_W_optimized[:, :5, :].clone().detach()
+            latent_prev = latent_W_optimized[:, :m_style, :].clone().detach()
             loss.backward()
             optimizer.step()
             pbar.set_description((f"ref_loss: {loss.item():.4f};"))

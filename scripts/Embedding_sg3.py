@@ -73,7 +73,24 @@ class Embedding_sg3(nn.Module):
     def invert_image_in_W(self, image_path=None, latent_dir=None,device=None):
         im_name = os.path.splitext(os.path.basename(image_path))[0]
         latent_W_path = os.path.join(latent_dir, f'{im_name}.npy')
-        latent_in = torch.from_numpy(self.convert_npy_code(np.load(latent_W_path))).to(device)
+        latent_in=None
+        if not os.path.isfile(latent_W_path):
+            ref_im = Image.open(image_path).convert('RGB')
+            ref_im_L = self.image_transform(ref_im.resize((256, 256), PIL.Image.LANCZOS)).unsqueeze(0).to('cuda')
+            gen_im,latent=None,None
+            pbar = tqdm(range(self.opts.SG3_steps), desc='Embedding', leave=False)
+            for step in pbar:
+                if(step==0):
+                    avg_image = self.get_avg_img(self.generator)
+                    avg_image = avg_image.unsqueeze(0).repeat(ref_im_L.shape[0], 1, 1, 1)
+                    x_input = torch.cat([ref_im_L, avg_image], dim=1)
+                else:
+                    gen_im = self.generator.face_pool(gen_im)
+                    x_input = torch.cat([ref_im_L, gen_im], dim=1)
+                gen_im,latent = self.generator(x_input,latent=latent, return_latents=True, resize=False)
+            latent_in=latent
+        else:
+            latent_in = torch.from_numpy(self.convert_npy_code(np.load(latent_W_path))).to(device)
         return latent_in
 
     def invert_image_in_FS(self, image_path=None):
