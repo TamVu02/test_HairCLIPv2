@@ -1,6 +1,22 @@
 import torch
 from utils.image_utils import dliate_erode
 import torch.nn.functional as F
+from PIL import Image
+from torchvision import transforms
+
+img_transforms = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
+
+def tensor2im(var: torch.tensor):
+    var = var.cpu().detach().transpose(0, 2).transpose(0, 1).numpy()
+    var = ((var + 1) / 2)
+    var[var < 0] = 0
+    var[var > 1] = 1
+    var = var * 255
+    return Image.fromarray(var.astype('uint8'))
+
 
 def get_avg_img(generator):
         avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
@@ -35,7 +51,8 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
         local_blending_mask_down = F.interpolate(local_blending_mask.float(), size=(32, 32), mode='bicubic')
         src_feature = local_feature * local_blending_mask_down + src_feature * (1-local_blending_mask_down)
 
-    out = src_feature.view(1,3,256,256)
+    feat_out_img = tensor2im(src_feature[-1])
+    out = img_transforms(feat_out_img).unsqueeze(0)
     img_gen_blend,latent=None,src_latent
 
     with torch.no_grad():
@@ -48,7 +65,7 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
                  img_gen_blend = generator.face_pool(img_gen_blend).detach().clone()
                  x_input = torch.cat([out, img_gen_blend], dim=1).to('cuda')
             img_gen_blend,latent = generator(x_input,latent=latent, return_latents=True, resize=False)
-    return src_feature, img_gen_blend
+    return feat_out_img, src_feature, img_gen_blend
 
 def color_feature_blending(generator, seg, edited_hairstyle_img, src_latent, color_latent_in, latent_F):
     hair_seg = torch.argmax(seg(edited_hairstyle_img)[1], dim=1).unsqueeze(1).long()
