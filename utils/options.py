@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-#from models.stylegan3.model import GeneratorType
+from models.stylegan3.model import GeneratorType
 
 
 class Options:
@@ -19,7 +19,7 @@ class Options:
 		# StyleGAN3 setting
 		self.parser.add_argument('--stylegan3_weights', type=str, default='/content/drive/MyDrive/HairGAN/tam_proposed/restyle_e4e_ffhq.pt')
 		self.parser.add_argument('--generator_path3', type=str, default='/content/drive/MyDrive/HairGAN/HairCLIP/pretrained_models/sg3-r-ffhq-1024.pt')#default=Path(model_paths["stylegan3_ffhq_pt"]))
-		#self.parser.add_argument('--generator_type', type=str, default=GeneratorType.ALIGNED)
+		self.parser.add_argument('--generator_type', type=str, default=GeneratorType.ALIGNED)
 		self.parser.add_argument('--stylegan3_size', type=int, default=1024)
 		self.parser.add_argument('--stylegan3_truncation', type=float, default=0.7)
 		self.parser.add_argument('--latents_path', type=str, default='/content/drive/MyDrive/HairGAN/Others/Test_npy/test_sg3_output/W+',help='Folder of latent.npy')
@@ -56,6 +56,7 @@ class Options:
 		self.parser.add_argument('--lr_ref', default=0.01, type=float, help='Learning rate for reference proxy')
 		self.parser.add_argument('--steps_ref', default=200, type=int, help='Step for reference proxy optimization')
 		self.parser.add_argument('--visual_num_ref', default=10, type=int, help='Visual image number during reference proxy optimization')
+		self.parser.add_argument('--n_iter_infer', default=5, type=int, help='Iteration for generating final blending output')
 
 		# arguments for color proxy
 		self.parser.add_argument('--aug_clip_loss_color', default=False, action="store_true")
