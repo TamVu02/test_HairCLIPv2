@@ -53,7 +53,7 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
 
     feat_out_img = tensor2im(src_feature[-1])
     out = img_transforms(feat_out_img).unsqueeze(0).to('cuda')
-    img_gen_blend,latent=None,src_latent
+    img_gen_blend=None
 
     with torch.no_grad():
         for i in range (n_iter):
@@ -64,7 +64,7 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
             else:
                  img_gen_blend = generator.face_pool(img_gen_blend).detach().clone()
                  x_input = torch.cat([out, img_gen_blend], dim=1)
-            img_gen_blend,latent = generator(x_input,latent=latent, return_latents=True, resize=False)
+            img_gen_blend,_ = generator(x_input,latent=src_latent, return_latents=True, resize=False)
     return feat_out_img, src_feature, img_gen_blend
 
 def color_feature_blending(generator, seg, edited_hairstyle_img, src_latent, color_latent_in, latent_F):
