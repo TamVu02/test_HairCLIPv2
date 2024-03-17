@@ -56,6 +56,7 @@ class Options:
 		self.parser.add_argument('--lr_ref', default=0.01, type=float, help='Learning rate for reference proxy')
 		self.parser.add_argument('--steps_ref', default=200, type=int, help='Step for reference proxy optimization')
 		self.parser.add_argument('--visual_num_ref', default=10, type=int, help='Visual image number during reference proxy optimization')
+		self.parser.add_argument('--n_iter_infer', default=5, type=int, help='Iteration for generating final blending output')
 
 		# arguments for color proxy
 		self.parser.add_argument('--aug_clip_loss_color', default=False, action="store_true")
