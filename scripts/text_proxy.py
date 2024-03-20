@@ -47,6 +47,7 @@ class TextProxy(torch.nn.Module):
 
         latent = []
         for i in range(16):
+            print('-----------',self.mean_latent_code.shape)
             if from_mean:
                 tmp = self.mean_latent_code[0].clone().detach().cuda()
             else:
@@ -64,12 +65,14 @@ class TextProxy(torch.nn.Module):
 
     def forward(self, tar_description, src_image, from_mean=True, painted_mask=None):
         optimizer, latent = self.setup_optimizer(from_mean=from_mean)
+        print('++++++++++++',latent.shape)
         src_kp = self.inference_on_kp_extractor(src_image).clone().detach()
         visual_list = []
         visual_interval = self.opts.steps_text // self.opts.visual_num_text
         pbar = tqdm(range(self.opts.steps_text))
         for i in pbar:
             latent_in = torch.stack(latent).unsqueeze(0)
+            print('yyyyyyyyyyyy',latent_in.shape)
             img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
 
             c_loss = self.clip_loss(img_gen, tar_description)
