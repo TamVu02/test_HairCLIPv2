@@ -37,10 +37,7 @@ styleclip_directions = {
 }
 
 interfacegan_aligned_edit_paths = {
-	'age': Path('editing/interfacegan/boundaries/ffhq/age_boundary.npy'),
-	'smile': Path('editing/interfacegan/boundaries/ffhq/Smiling_boundary.npy'),
-	'pose': Path('editing/interfacegan/boundaries/ffhq/pose_boundary.npy'),
-	'Male': Path('editing/interfacegan/boundaries/ffhq/Male_boundary.npy'),
+  'Bald': Path('/content/test_HairCLIPv2/editing/interfacegan/boundaries/Bald_boundary.npy'),
 }
 
 interfacegan_unaligned_edit_paths = {
