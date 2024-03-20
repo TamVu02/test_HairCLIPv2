@@ -36,7 +36,7 @@ class TextProxy(torch.nn.Module):
             param.requires_grad = False
         return kp_extractor
 
-    def setup_optimizer(self, from_mean=True):
+    def setup_optimizer(self, from_mean=True,latent_src=None):
         if not from_mean:
             truncation_mean_latent = self.mean_latent_code[:,0]
             latent_code_init_not_trunc = torch.randn(1, 512).cuda()
@@ -48,7 +48,7 @@ class TextProxy(torch.nn.Module):
         latent = []
         for i in range(16):
             if from_mean:
-                tmp = self.mean_latent_code[0,i].clone().detach().cuda()
+                tmp = latent_src[0,i].clone().detach().cuda()
             else:
                 tmp = random_latent_with_trunc.clone().detach()
             if i < 5:
@@ -62,8 +62,8 @@ class TextProxy(torch.nn.Module):
     def inference_on_kp_extractor(self, input_image):
         return self.kp_extractor.face_alignment_net(((F.interpolate(input_image, size=(256, 256)) + 1) / 2).clamp(0, 1))
 
-    def forward(self, tar_description, src_image, from_mean=True, painted_mask=None):
-        optimizer, latent = self.setup_optimizer(from_mean=from_mean)
+    def forward(self, tar_description, src_image, from_mean=True, painted_mask=None, src_latent=None):
+        optimizer, latent = self.setup_optimizer(from_mean=from_mean,latent_src=src_latent)
         src_kp = self.inference_on_kp_extractor(src_image).clone().detach()
         visual_list = []
         visual_interval = self.opts.steps_text // self.opts.visual_num_text
@@ -85,7 +85,7 @@ class TextProxy(torch.nn.Module):
                 loss += self.opts.hair_mask_lambda_text * hair_mask_loss
             
             optimizer.zero_grad()
-            loss.backward(retain_graph=True)
+            loss.backward()
             optimizer.step()
             pbar.set_description((f"text_loss: {loss.item():.4f};"))
             if (i % visual_interval == 0) or (i == (self.opts.steps_text-1)):
