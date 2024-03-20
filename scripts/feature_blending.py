@@ -40,11 +40,10 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
         bald_blending_mask = torch.from_numpy(bald_blending_mask).unsqueeze(0).unsqueeze(0).cuda()
         bald_blending_mask_down = F.interpolate(bald_blending_mask.float(), size=(1024, 1024), mode='bicubic')
         src_feature = bald_feature * bald_blending_mask_down + src_feature * (1-bald_blending_mask_down)
-        src_feature = bald_feature * bald_blending_mask_down + src_feature * (1-bald_blending_mask_down)
 
         global_hair_mask = torch.where(global_proxy_seg==10, torch.ones_like(global_proxy_seg), torch.zeros_like(global_proxy_seg))
         global_hair_mask_down = F.interpolate(global_hair_mask.float(), size=(1024, 1024), mode='bicubic')
-        src_feature_final = global_feature * global_hair_mask_down + src_feature * (1-global_hair_mask_down)
+        src_feature = global_feature * global_hair_mask_down + src_feature * (1-global_hair_mask_down)
 
     if latent_local is not None:
         local_feature = generator.decoder.synthesis(latent_local, noise_mode='const')#generator.decoder.synthesis([latent_local], input_is_latent=True, return_latents=True, start_layer=0, end_layer=3)
