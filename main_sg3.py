@@ -38,4 +38,8 @@ input_mask = torch.argmax(seg(src_image)[1], dim=1).long().clone().detach()
 
 text_proxy = TextProxy(opts, generator, seg, mean_latent_code)
 ref_proxy = RefProxy(opts, generator, seg, re4e)
-bald_proxy = BaldProxy(generator, opts.bald_path)
+
+latent_bald=None
+if latent_bald is None:
+    latent_bald, visual_global_list = text_proxy('bald hairstyle', src_image, from_mean=True,src_latent=src_latent)
+np.savez('latent_bald.npy',latent_bald.detach().cpu().numpy())
