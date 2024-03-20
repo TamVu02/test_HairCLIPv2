@@ -41,21 +41,22 @@ class TextProxy(torch.nn.Module):
             truncation_mean_latent = self.mean_latent_code[:,0]
             latent_code_init_not_trunc = torch.randn(1, 512).cuda()
             with torch.no_grad():
-                _, latent_code_init_truncated = self.generator([latent_code_init_not_trunc], return_latents=True, truncation=0.3, truncation_latent=truncation_mean_latent)
+                latent_code_init_truncated = self.generator.decoder.mapping(latent_code_init_not_trunc, None, truncation_psi=0.3)
+                #_, latent_code_init_truncated = self.generator([latent_code_init_not_trunc], return_latents=True, truncation=0.3, truncation_latent=truncation_mean_latent)
             random_latent_with_trunc = latent_code_init_truncated[0][0]
 
         latent = []
-        for i in range(18):
+        for i in range(16):
             if from_mean:
-                tmp = self.mean_latent_code[0,0].clone().detach().cuda()
+                tmp = self.mean_latent_code[0].clone().detach().cuda()
             else:
                 tmp = random_latent_with_trunc.clone().detach()
-            if i < 7:
+            if i < 5:
                 tmp.requires_grad = True
             else:
                 tmp.requires_grad = False
             latent.append(tmp)
-        optimizer = torch.optim.Adam(latent[0:7], lr=self.opts.lr_text)
+        optimizer = torch.optim.Adam(latent[0:5], lr=self.opts.lr_text)
         return optimizer, latent
 
     def inference_on_kp_extractor(self, input_image):
@@ -69,7 +70,7 @@ class TextProxy(torch.nn.Module):
         pbar = tqdm(range(self.opts.steps_text))
         for i in pbar:
             latent_in = torch.stack(latent).unsqueeze(0)
-            img_gen, _ = self.generator([latent_in], input_is_latent=True, randomize_noise=False)
+            img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
 
             c_loss = self.clip_loss(img_gen, tar_description)
 
@@ -89,6 +90,6 @@ class TextProxy(torch.nn.Module):
             pbar.set_description((f"text_loss: {loss.item():.4f};"))
             if (i % visual_interval == 0) or (i == (self.opts.steps_text-1)):
                 with torch.no_grad():
-                    img_gen, _ = self.generator([latent_in], input_is_latent=True, randomize_noise=False)
+                    img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
                     visual_list.append(process_display_input(img_gen))
         return latent_in, visual_list
