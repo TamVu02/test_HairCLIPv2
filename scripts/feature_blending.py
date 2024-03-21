@@ -4,26 +4,13 @@ import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
 from scripts.text_proxy import TextProxy
+from utils.common import tensor2im
+from utils.inference_utils import get_average_image
 
 img_transforms = transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
-
-def tensor2im(var: torch.tensor):
-    var = var.cpu().detach().transpose(0, 2).transpose(0, 1).numpy()
-    var = ((var + 1) / 2)
-    var[var < 0] = 0
-    var[var > 1] = 1
-    var = var * 255
-    return Image.fromarray(var.astype('uint8'))
-
-
-def get_avg_img(generator):
-        avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
-                              input_code=True,
-                              return_latents=False)[0]
-        return avg_image
 
 def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_mask, latent_bald, latent_global=None, latent_local=None, local_blending_mask=None, n_iter=5):
 
@@ -59,7 +46,7 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
     with torch.no_grad():
         for i in range (n_iter):
             if i==0:
-                 avg_image = get_avg_img(generator)
+                 avg_image = get_average_image(generator)
                  avg_image = avg_image.unsqueeze(0).repeat(out.shape[0], 1, 1, 1)
                  x_input = torch.cat([out, avg_image], dim=1)
             else:

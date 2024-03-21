@@ -12,6 +12,8 @@ import cv2
 from PIL import Image
 import torch.nn.functional as F
 import os
+from utils.common import convert_npy_code
+from utils.inference_utils import get_average_image
 
 
 class Embedding_sg3(nn.Module):
@@ -39,19 +41,6 @@ class Embedding_sg3(nn.Module):
     def load_downsampling(self):
         factor = 1024 // 256
         self.downsample = BicubicDownSample(factor=factor, cuda=True)
-
-    def convert_npy_code(self,latent):
-        if latent.shape == (16, 512):
-            latent = np.reshape(latent, (1, 16, 512))
-        if latent.shape == (512,) or latent.shape == (1, 512):
-            latent = np.reshape(latent, (1, 1, 512)).repeat(16, axis=1)
-        return latent
-    
-    def get_avg_img(self,generator):
-        avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
-                              input_code=True,
-                              return_latents=False)[0]
-        return avg_image
 
 
     def setup_FS_optimizer(self, latent_W, F_init):
@@ -81,7 +70,7 @@ class Embedding_sg3(nn.Module):
             pbar = tqdm(range(self.opts.SG3_steps), desc='Embedding', leave=False)
             for step in pbar:
                 if(step==0):
-                    avg_image = self.get_avg_img(self.generator)
+                    avg_image = get_average_image(self.generator)
                     avg_image = avg_image.unsqueeze(0).repeat(ref_im_L.shape[0], 1, 1, 1)
                     x_input = torch.cat([ref_im_L, avg_image], dim=1)
                 else:
@@ -90,12 +79,12 @@ class Embedding_sg3(nn.Module):
                 gen_im,latent = self.generator(x_input,latent=latent, return_latents=True, resize=False)
             latent_in=latent
         else:
-            latent_in = torch.from_numpy(self.convert_npy_code(np.load(latent_W_path))).to(device)
+            latent_in = torch.from_numpy(convert_npy_code(np.load(latent_W_path))).to(device)
         return latent_in
 
     def invert_image_in_FS(self, image_path=None):
         ref_im = Image.open(image_path).convert('RGB')
-        ref_im_L = self.image_transform(ref_im.resize((256, 256), PIL.Image.LANCZOS)).unsqueeze(0).to('cuda')
+        ref_im_L = self.image_transform(ref_im.resize((256, 256), PIL.Image.LANCZOS)).unsqueeze(0)#.to('cuda')
         ref_im_H = self.image_transform(ref_im.resize((1024, 1024), PIL.Image.LANCZOS)).unsqueeze(0)
 
         latent_W = self.invert_image_in_W(image_path=image_path, latent_dir=self.opts.latents_path, device='cuda').clone().detach()
@@ -108,13 +97,14 @@ class Embedding_sg3(nn.Module):
         for step in pbar:
             optimizer_FS.zero_grad()
             latent_in = torch.stack(latent_S).unsqueeze(0)
-            if(step==0):
-                avg_image = self.get_avg_img(self.generator)
-                avg_image = avg_image.unsqueeze(0).repeat(ref_im_L.shape[0], 1, 1, 1)
-                x_input = torch.cat([ref_im_L, avg_image], dim=1)
-            else:
-                x_input = torch.cat([ref_im_L, gen_im], dim=1)
-            gen_im,latent = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
+            # if(step==0):
+            #     avg_image = self.get_avg_img(self.generator)
+            #     avg_image = avg_image.unsqueeze(0).repeat(ref_im_L.shape[0], 1, 1, 1)
+            #     x_input = torch.cat([ref_im_L, avg_image], dim=1)
+            # else:
+            #     x_input = torch.cat([ref_im_L, gen_im], dim=1)
+            # gen_im,latent = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
+            gen_im = self.generator.decoder.synthesis(latent_in, noise_mode='const')
             im_dict = {
                 'ref_im_H': ref_im_H.cuda(),
                 'ref_im_L': ref_im_L.cuda(),

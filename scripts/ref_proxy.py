@@ -8,6 +8,9 @@ from torchvision import transforms
 from tqdm import tqdm
 from criteria.transfer_loss import TransferLossBuilder
 from PIL import Image
+from utils.common import convert_npy_code
+from utils.inference_utils import get_average_image
+
 class RefProxy(torch.nn.Module):
     def __init__(self, opts, generator, seg, re4e):
         super(RefProxy, self).__init__()
@@ -34,19 +37,6 @@ class RefProxy(torch.nn.Module):
         for param in kp_extractor.face_alignment_net.parameters():
             param.requires_grad = False
         return kp_extractor
-    
-    def convert_npy_code(self,latent):
-        if latent.shape == (16, 512):
-            latent = np.reshape(latent, (1, 16, 512))
-        if latent.shape == (512,) or latent.shape == (1, 512):
-            latent = np.reshape(latent, (1, 1, 512)).repeat(16, axis=1)
-        return latent
-    
-    def get_avg_img(self,generator):
-        avg_image = generator(generator.latent_avg.repeat(16, 1).unsqueeze(0).cuda(),
-                              input_code=True,
-                              return_latents=False)[0]
-        return avg_image
 
     def load_hairstyle_ref(self, hairstyle_ref_name):
         image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
@@ -61,7 +51,7 @@ class RefProxy(torch.nn.Module):
             save_latent_path = os.path.join(self.opts.latents_path, f'{os.path.splitext(hairstyle_ref_name)[0]}.npy')
             np.save(save_latent_path, save_latent)
 
-        latent_W_optimized = torch.from_numpy(self.convert_npy_code(np.load(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")))).cuda().requires_grad_(True)
+        latent_W_optimized = torch.from_numpy(convert_npy_code(np.load(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")))).cuda().requires_grad_(True)
         return ref_img, latent_W_optimized
 
     def inference_on_kp_extractor(self, input_image):
@@ -77,7 +67,7 @@ class RefProxy(torch.nn.Module):
     def forward(self, hairstyle_ref_name, src_image, painted_mask=None,m_style=6):
         ref_img, latent_W_optimized = self.load_hairstyle_ref(hairstyle_ref_name)
         ref_img_256, ref_hairmask_256 = self.gen_256_img_hairmask(ref_img)
-        ref_img_256 = ref_img_256.to('cuda')
+        #ref_img_256 = ref_img_256.to('cuda')
         optimizer = torch.optim.Adam([latent_W_optimized], lr=self.opts.lr_ref)
         latent_end = latent_W_optimized[:, m_style:, :].clone().detach()
         latent_prev = latent_W_optimized[:, :m_style, :].clone().detach()
@@ -90,13 +80,14 @@ class RefProxy(torch.nn.Module):
         for i in pbar:
             optimizer.zero_grad()
             latent_in = torch.cat([latent_W_optimized[:, :m_style, :], latent_end], dim=1)
-            if(i==0):
-                avg_image = self.get_avg_img(self.generator)
-                avg_image = avg_image.unsqueeze(0).repeat(ref_img_256.shape[0], 1, 1, 1)
-                x_input = torch.cat([ref_img_256, avg_image], dim=1)
-            else:
-                x_input = torch.cat([ref_img_256, img_gen], dim=1)
-            img_gen,_ = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
+            # if(i==0):
+            #     avg_image = get_average_image(self.generator)
+            #     avg_image = avg_image.unsqueeze(0).repeat(ref_img_256.shape[0], 1, 1, 1)
+            #     x_input = torch.cat([ref_img_256, avg_image], dim=1)
+            # else:
+            #     x_input = torch.cat([ref_img_256, img_gen], dim=1)
+            # img_gen,_ = self.generator(x_input,latent=latent_in, return_latents=True, resize=False)
+            img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
             img_gen_256, gen_hairmask_256 = self.gen_256_img_hairmask(img_gen)
             hair_style_loss = self.transfer_loss_builder.style_loss(ref_img_256, img_gen_256, mask1=ref_hairmask_256, mask2=gen_hairmask_256)
 
