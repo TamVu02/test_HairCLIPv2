@@ -5,41 +5,83 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 from scripts.Embedding_sg3 import Embedding_sg3
-from scripts.text_proxy import TextProxy
+from editing.interfacegan.face_editor import FaceEditor
+from models.stylegan3.model import GeneratorType
 from scripts.ref_proxy import RefProxy
-from scripts.bald_proxy import BaldProxy
 from scripts.feature_blending import hairstyle_feature_blending
-from utils.seg_utils import vis_seg
-from utils.mask_ui import painting_mask
-from utils.image_utils import display_image_list, process_display_input
 from utils.model_utils import load_sg3_models
 from utils.options import Options
+from utils.image_utils import process_display_input
+import argparse
+import random
 
-#Load args
-opts = Options().parse()
-src_name = '00008'# source image name you want to edit
+def main(args):
+    #Load args
+    opts = Options().parse()
 
-#Load stylegan3 model for generator
-image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
-generator, opts_sg3, mean_latent_code, seg = load_sg3_models(opts)
+    #Load stylegan3 model for generator,references proxy and interface editor for bald
+    image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
+    generator, opts_sg3, mean_latent_code, seg = load_sg3_models(opts)
+    ref_proxy = RefProxy(opts, generator, seg, re4e)
+    editor = FaceEditor(stylegan_generator=generator.decoder, generator_type=GeneratorType.ALIGNED)
+    edit_direction='Bald'
+    min_value=2
+    max_value=7
 
-#Embedd source image into FS space
-re4e = Embedding_sg3(opts, generator, mean_latent_code[0,0])
-if not os.path.isfile(os.path.join(opts.src_latent_dir, f"{src_name}.npz")):
-    inverted_latent_w_plus, inverted_latent_F = re4e.invert_image_in_FS(image_path=f'{opts.src_img_dir}/{src_name}.png')
-    save_latent_path = os.path.join(opts.src_latent_dir, f'{src_name}.npz')
-    np.savez(save_latent_path, latent_in=inverted_latent_w_plus.detach().cpu().numpy(),
-                latent_F=inverted_latent_F.detach().cpu().numpy())
+    for img in args.img_list:
+        if os.path.isfile(os.path.join(opts.src_img_dir,f'{img}.png')):
+            #Blending source with at most 3 images in the list
+            src_name=img
+            #Embedding
+            re4e = Embedding_sg3(opts, generator, mean_latent_code[0,0])
+            if not os.path.isfile(os.path.join(opts.src_latent_dir, f"{src_name}.npz")):
+                inverted_latent_w_plus, inverted_latent_F = re4e.invert_image_in_FS(image_path=f'{opts.src_img_dir}/{src_name}.png')
+                save_latent_path = os.path.join(opts.src_latent_dir, f'{src_name}.npz')
+                np.savez(save_latent_path, latent_in=inverted_latent_w_plus.detach().cpu().numpy(),
+                         latent_F=inverted_latent_F.detach().cpu().numpy())
 
-src_latent = torch.from_numpy(np.load(f'{opts.src_latent_dir}/{src_name}.npz')['latent_in']).cuda()
-src_feature = torch.from_numpy(np.load(f'{opts.src_latent_dir}/{src_name}.npz')['latent_F']).cuda()
-src_image = image_transform(Image.open(f'{opts.src_img_dir}/{src_name}.png').convert('RGB')).unsqueeze(0).cuda()
-input_mask = torch.argmax(seg(src_image)[1], dim=1).long().clone().detach()
+            src_latent = torch.from_numpy(np.load(f'{opts.src_latent_dir}/{src_name}.npz')['latent_in']).cuda()
+            src_feature = torch.from_numpy(np.load(f'{opts.src_latent_dir}/{src_name}.npz')['latent_F']).cuda()
+            src_image = image_transform(Image.open(f'{opts.src_img_dir}/{src_name}.png').convert('RGB')).unsqueeze(0).cuda()
+            input_mask = torch.argmax(seg(src_image)[1], dim=1).long().clone().detach()
 
-text_proxy = TextProxy(opts, generator, seg, mean_latent_code)
-ref_proxy = RefProxy(opts, generator, seg, re4e)
+            #Perform interface gan with bald pretrain model
+            print(f"Performing edit for {edit_direction}...")
+            edit_images, edit_latents = editor.edit(latents=src_latent,
+                                        direction=edit_direction,
+                                        factor_range=(min_value, max_value),
+                                        user_transforms=None,
+                                        apply_user_transformations=False)
+            print("Done!")
+            latent_bald=edit_latents[-1]
 
-latent_bald=None
-if latent_bald is None:
-    latent_bald, visual_global_list = text_proxy('bald hairstyle', src_image, from_mean=True,src_latent=src_latent)
-np.savez('latent_bald.npy',latent_bald.detach().cpu().numpy())
+            #Retrieve 3 random image in image_list
+            img_list_alt=args.img_list.copy()
+            random.shuffle(img_list_alt)
+            target_img_list=[im for im in img_list_alt if im != src_name][:3]
+            
+            for target_name in target_img_list:
+                if not os.path.isfile(os.path.join(opts.src_img_dir,f'{target_name}.png')):
+                      #Run ref proxy on target image
+                      latent_global, visual_global_list=ref_proxy(target_name+'.png', src_image=src_image, m_style=6)
+                      #Blending feature
+                      _,src_feature, edited_hairstyle_img = hairstyle_feature_blending(generator, seg, src_latent, src_feature, input_mask,latent_global=latent_global,latent_bald=latent_bald,n_iter=2)
+                      #Save output image
+                      img_output = Image.fromarray(process_display_input(edited_hairstyle_img))
+                      im_path = os.path.join(args.save_output_dir, f'{src_name}_{target_name}.png')
+                      img_output.save(im_path)
+                      print(f'Done saving output {src_name}_{target_name}.png to {args.save_output_dir}')
+                else:
+                    print(f'Image {target_name}.png does not exit in {opts.src_img_dir}')
+        else:
+            print(f'Image {img}.png does not exit in {opts.src_img_dir}')
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='HairGAN')
+
+    parser.add_argument('--save_output_dir', help='directory for saving images after blending')
+    parser.add_argument('--img_list', help='image list eg:[00004,00006,00131,03177]')
+    
+    args = parser.parse_args()
+    main(args)
