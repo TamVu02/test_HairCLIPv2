@@ -17,11 +17,13 @@ import random
 
 def main(args):
     #Load args
-    opts = Options().parse()
+    opts = Options().parse(jupyter=True)
+    print(args)
 
     #Load stylegan3 model for generator,references proxy and interface editor for bald
     image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
     generator, opts_sg3, mean_latent_code, seg = load_sg3_models(opts)
+    re4e = Embedding_sg3(opts, generator, mean_latent_code[0,0])
     ref_proxy = RefProxy(opts, generator, seg, re4e)
     editor = FaceEditor(stylegan_generator=generator.decoder, generator_type=GeneratorType.ALIGNED)
     edit_direction='Bald'
@@ -29,11 +31,12 @@ def main(args):
     max_value=7
 
     for img in args.img_list:
+        print('==========================================================================================')
         if os.path.isfile(os.path.join(opts.src_img_dir,f'{img}.png')):
+            print(f"Performing edit on image {img}.png")
             #Blending source with at most 3 images in the list
             src_name=img
             #Embedding
-            re4e = Embedding_sg3(opts, generator, mean_latent_code[0,0])
             if not os.path.isfile(os.path.join(opts.src_latent_dir, f"{src_name}.npz")):
                 inverted_latent_w_plus, inverted_latent_F = re4e.invert_image_in_FS(image_path=f'{opts.src_img_dir}/{src_name}.png')
                 save_latent_path = os.path.join(opts.src_latent_dir, f'{src_name}.npz')
@@ -61,7 +64,8 @@ def main(args):
             target_img_list=[im for im in img_list_alt if im != src_name][:3]
             
             for target_name in target_img_list:
-                if not os.path.isfile(os.path.join(opts.src_img_dir,f'{target_name}.png')):
+                if os.path.isfile(os.path.join(opts.src_img_dir,f'{target_name}.png')):
+                      print(f"==Performing edit source image on target image {target_name}.png")
                       #Run ref proxy on target image
                       latent_global, visual_global_list=ref_proxy(target_name+'.png', src_image=src_image, m_style=6)
                       #Blending feature
@@ -72,16 +76,16 @@ def main(args):
                       img_output.save(im_path)
                       print(f'Done saving output {src_name}_{target_name}.png to {args.save_output_dir}')
                 else:
-                    print(f'Image {target_name}.png does not exit in {opts.src_img_dir}')
+                    print(f'Image target {target_name}.png does not exit in {opts.src_img_dir}')
         else:
-            print(f'Image {img}.png does not exit in {opts.src_img_dir}')
+            print(f'Image source {img}.png does not exit in {opts.src_img_dir}')
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='HairGAN')
 
-    parser.add_argument('--save_output_dir', help='directory for saving images after blending')
-    parser.add_argument('--img_list', help='image list eg:[00004,00006,00131,03177]')
+    parser.add_argument('--save_output_dir', type=str ,help='directory for saving images after blending')
+    parser.add_argument('--img_list', type=str,nargs='+',help='image list eg:[00004,00006,00131,03177]')
     
     args = parser.parse_args()
     main(args)
