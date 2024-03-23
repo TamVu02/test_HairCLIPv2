@@ -65,7 +65,7 @@ def main(args):
                       #Run ref proxy on target image
                       latent_global, visual_global_list=ref_proxy(target_name+'.png', src_image=src_image, m_style=6)
                       #Blending feature
-                      _,src_feature, edited_hairstyle_img = hairstyle_feature_blending(generator, seg, src_latent, src_feature, input_mask,latent_global=latent_global,latent_bald=latent_bald,n_iter=2)
+                      _,src_feature, edited_hairstyle_img = hairstyle_feature_blending(generator, seg, src_latent, src_feature, src_image, input_mask,latent_global=latent_global,latent_bald=latent_bald,n_iter=2)
                       #Save output image
                       img_output = Image.fromarray(process_display_input(edited_hairstyle_img))
                       im_path = os.path.join(args.save_output_dir, f'{src_name}_{target_name}.png')
