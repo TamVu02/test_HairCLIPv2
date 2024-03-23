@@ -12,7 +12,7 @@ img_transforms = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
 
-def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_mask, latent_bald, latent_global=None, latent_local=None, local_blending_mask=None, n_iter=5):
+def hairstyle_feature_blending(generator, seg, src_latent, src_feature, src_image, visual_mask, latent_bald, latent_global=None, latent_local=None, local_blending_mask=None, n_iter=5):
 
     if latent_global is not None:
         bald_feature = generator.decoder.synthesis(latent_bald, noise_mode='const')
@@ -26,11 +26,11 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
         bald_blending_mask = dliate_erode(hair_ear_mask.astype('uint8'), 30)
         bald_blending_mask = torch.from_numpy(bald_blending_mask).unsqueeze(0).unsqueeze(0).cuda()
         bald_blending_mask_down = F.interpolate(bald_blending_mask.float(), size=(1024, 1024), mode='bicubic')
-        src_feature = bald_feature * bald_blending_mask_down + src_feature * (1-bald_blending_mask_down)
+        src_image = bald_feature * bald_blending_mask_down + src_image * (1-bald_blending_mask_down)
 
         global_hair_mask = torch.where(global_proxy_seg==10, torch.ones_like(global_proxy_seg), torch.zeros_like(global_proxy_seg))
         global_hair_mask_down = F.interpolate(global_hair_mask.float(), size=(1024, 1024), mode='bicubic')
-        src_feature = global_feature * global_hair_mask_down + src_feature * (1-global_hair_mask_down)
+        src_image = global_feature * global_hair_mask_down + src_image * (1-global_hair_mask_down)
 
     if latent_local is not None:
         local_feature = generator.decoder.synthesis(latent_local, noise_mode='const')#generator.decoder.synthesis([latent_local], input_is_latent=True, return_latents=True, start_layer=0, end_layer=3)
@@ -39,9 +39,9 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
         local_blending_mask_down = F.interpolate(local_blending_mask.float(), size=(32, 32), mode='bicubic')
         src_feature = local_feature * local_blending_mask_down + src_feature * (1-local_blending_mask_down)
 
-    feat_out_img = tensor2im(src_feature[-1])
+    feat_out_img = tensor2im(src_image[-1])
     out = img_transforms(feat_out_img).unsqueeze(0).to('cuda')
-    img_gen_blend=None
+    img_gen_blend,latent=None,None
 
     with torch.no_grad():
         for i in range (n_iter):
@@ -52,7 +52,7 @@ def hairstyle_feature_blending(generator, seg, src_latent, src_feature, visual_m
             else:
                  img_gen_blend = generator.face_pool(img_gen_blend).detach().clone()
                  x_input = torch.cat([out, img_gen_blend], dim=1)
-            img_gen_blend,_ = generator(x_input,latent=src_latent, return_latents=True, resize=False)
+            img_gen_blend,latent = generator(x_input,latent=latent, return_latents=True, resize=False)
     return feat_out_img, src_feature, img_gen_blend
 
 def color_feature_blending(generator, seg, edited_hairstyle_img, src_latent, color_latent_in, latent_F):
