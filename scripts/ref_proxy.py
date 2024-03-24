@@ -45,13 +45,12 @@ class RefProxy(torch.nn.Module):
         ref_img = image_transform(ref_PIL).unsqueeze(0).cuda()
 
         #print(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy"))
-        if not os.path.isfile(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")):
-            inverted_wplus_code = self.re4e.invert_image_in_W(image_path=hairstyle_img_path)
-            save_latent = inverted_wplus_code.detach().cpu().numpy()
-            save_latent_path = os.path.join(self.opts.latents_path, f'{os.path.splitext(hairstyle_ref_name)[0]}.npy')
-            np.save(save_latent_path, save_latent)
-
-        latent_W_optimized = torch.from_numpy(convert_npy_code(np.load(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy")))).cuda().requires_grad_(True)
+        if not os.path.isfile(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npz")):
+            inverted_latent_w_plus, inverted_latent_F = self.re4e.invert_image_in_FS(image_path=hairstyle_img_path)
+            save_latent_path = os.path.join(self.opts.src_latent_dir, f'{os.path.splitext(hairstyle_ref_name)[0]}.npz')
+            np.savez(save_latent_path, latent_in=inverted_latent_w_plus.detach().cpu().numpy(),
+                         latent_F=inverted_latent_F.detach().cpu().numpy())
+        latent_W_optimized = torch.from_numpy(convert_npy_code(np.load(os.path.join(self.opts.src_latent_dir, f"{os.path.splitext(hairstyle_ref_name)[0]}.npz"))['latent_in'])).cuda().requires_grad_(True)
         return ref_img, latent_W_optimized
 
     def inference_on_kp_extractor(self, input_image):
