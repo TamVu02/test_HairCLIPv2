@@ -31,8 +31,8 @@ class Options:
 		# arguments for embedding
 		self.parser.add_argument('--W_steps', default=1100, type=int, help='Step for W plus inversion')
 		self.parser.add_argument('--SG3_steps', default=1, type=int, help='Step for stylegan3 decoder iter')
-		self.parser.add_argument('--FS_steps', default=300, type=int, help='Step for F inversion')
-		self.parser.add_argument('--lr_embedding', default=0.01, type=float, help='Learning rate for embedding')
+		self.parser.add_argument('--FS_steps', default=200, type=int, help='Step for F inversion')
+		self.parser.add_argument('--lr_embedding', default=0.02, type=float, help='Learning rate for embedding')
 		self.parser.add_argument('--l2_lambda_embedding', default=1.0, type=float, help='L2 loss lambda for embedding')
 		self.parser.add_argument('--percept_lambda_embedding', default=1.0, type=float, help='LPIPS loss lambda for embedding')
 		self.parser.add_argument('--p_norm_lambda_embedding', default=0.001, type=float, help='P norm loss lambda for embedding')
