@@ -70,6 +70,10 @@ class Options:
 		self.parser.add_argument('--final_steps_color', default=100, type=int, help='Final blending step for color proxy optimization')
 		self.parser.add_argument('--visual_num_color', default=10, type=int, help='Visual image number during color proxy optimization')
 
+		# arguments for refine proxy
+		self.parser.add_argument('--steps_refine', default=400, type=int, help='Step for reference proxy optimization')
+		self.parser.add_argument('--lr_refine', default=0.01, type=float, help='Learning rate for reference proxy')
+
 
 	def parse(self, jupyter=False):
 		if jupyter:
