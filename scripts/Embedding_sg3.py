@@ -79,7 +79,7 @@ class Embedding_sg3(nn.Module):
         F_init = self.generator.synthesis(latent_W, noise_mode='const')
         optimizer_FS, latent_F, latent_S = self.setup_FS_optimizer(latent_W, F_init)
 
-        pbar = tqdm(range(self.opts.FS_steps), desc='Embedding', leave=False)
+        pbar = tqdm(range(self.opts.FS_steps), desc='Embedding', leave=True)
         for step in pbar:
             optimizer_FS.zero_grad()
             latent_in = torch.stack(latent_S).unsqueeze(0)
