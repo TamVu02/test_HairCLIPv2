@@ -96,7 +96,7 @@ def main(args):
                       latent_global, visual_global_list=ref_proxy(target_name+'.png', src_image=src_image, m_style=6)
                       #Blending feature
                       _,src_feature, edited_hairstyle_img = hairstyle_feature_blending(generator, seg, src_latent, src_feature, src_image, input_mask,latent_global=latent_global,latent_bald=latent_bald,n_iter=2)
-                      lpips_score = loss_builder._loss_lpips(src_image, edited_hairstyle_img)
+                      lpips_score = loss_builder._loss_lpips(src_image, edited_hairstyle_img).item()
                       ssim_score = calculate_ssim_score_skimage(src_image,edited_hairstyle_img)
                       print(f'LPIPS score: {lpips_score} \t SSIM score: {ssim_score}')
                       #Save score as format: source_name, target_name, lpips_score, ssim_score
