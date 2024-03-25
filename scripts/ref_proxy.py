@@ -45,7 +45,7 @@ class RefProxy(torch.nn.Module):
         ref_img = image_transform(ref_PIL).unsqueeze(0).cuda()
 
         #print(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npy"))
-        if not os.path.isfile(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npz")):
+        if os.path.isfile(os.path.join(self.opts.latents_path, f"{os.path.splitext(hairstyle_ref_name)[0]}.npz")):
             inverted_latent_w_plus, inverted_latent_F = self.re4e.invert_image_in_FS(image_path=hairstyle_img_path)
             save_latent_path = os.path.join(self.opts.src_latent_dir, f'{os.path.splitext(hairstyle_ref_name)[0]}.npz')
             np.savez(save_latent_path, latent_in=inverted_latent_w_plus.detach().cpu().numpy(),
