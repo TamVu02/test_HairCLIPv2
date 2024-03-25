@@ -103,6 +103,7 @@ def main(args):
                       print(f'LPIPS score: {lpips_score} \t SSIM score: {ssim_score}')
                       #Save score as format: source_name, target_name, lpips_score, ssim_score
                       csv_writer.writerow([src_name, target_name, lpips_score, ssim_score])
+                      print("Save metric score to csv file sucessfully.", flush=True)
                       #Save output image
                       img_output = Image.fromarray(process_display_input(edited_hairstyle_img))
                       im_path = os.path.join(args.save_output_dir, f'{src_name}_{target_name}.png')
