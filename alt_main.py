@@ -9,7 +9,7 @@ from editing.interfacegan.face_editor import FaceEditor
 from models.stylegan3.model import GeneratorType
 from scripts.ref_proxy import RefProxy
 from scripts.refine_image import RefineProxy
-from scripts.feature_blending import hairstyle_feature_blending
+from scripts.feat_blend_2 import hairstyle_feature_blending_2
 from utils.model_utils import load_sg3_models
 from utils.options import Options
 from utils.image_utils import process_display_input
@@ -46,7 +46,7 @@ def main(args):
     loss_builder = EmbeddingLossBuilder(opts)
     #Load ref proxy
     ref_proxy = RefProxy(opts, generator, seg, re4e)
-    refine_proxy = RefineProxy(opts, generator, seg, re4e)
+    refine_proxy = RefineProxy(opts, generator, seg)
     #Load interfaceGAN for bald proxy
     editor = FaceEditor(stylegan_generator=generator.decoder, generator_type=GeneratorType.ALIGNED)
     edit_direction='Bald'
@@ -64,7 +64,7 @@ def main(args):
         if os.path.isfile(os.path.join(opts.src_img_dir,f'{img}.png')):
             print(f"Performing edit on image {img}.png")
             src_name=img
-            src_latent = torch.from_numpy(np.load(f'{opts.ref_latent_dir}/{src_name}.npy')).cuda()
+            src_latent = torch.from_numpy(np.load(f'{opts.ref_latent_dir}/{src_name}.npy')).unsqueeze(0).cuda()
             src_image = image_transform(Image.open(f'{opts.src_img_dir}/{src_name}.png').convert('RGB')).unsqueeze(0).cuda()
             input_mask = torch.argmax(seg(src_image)[1], dim=1).long().clone().detach()
 
@@ -87,13 +87,13 @@ def main(args):
                       print(f"==Performing edit source image on target image {target_name}.png")
                       ref_image = image_transform(Image.open(f'{opts.src_img_dir}/{target_name}.png').convert('RGB')).unsqueeze(0).cuda()
                       #Run ref proxy on target image
-                      latent_global,_=ref_proxy(target_name+'.png', src_image=src_image, m_style=6)
+                      latent_global,visual_global_list=ref_proxy(target_name+'.png', src_image=src_image, m_style=6)
                       #Blending feature
-                      _, _, edited_latent = hairstyle_feature_blending(generator, seg, src_image, input_mask,latent_global=latent_global,latent_bald=latent_bald)
+                      _, _, edited_latent = hairstyle_feature_blending_2(generator, seg, src_image, input_mask,latent_bald, latent_global)
                       #Refine blending image
-                      final_image,_,_=refine_proxy(blended_latent=edited_latent, src_image=src_image, ref_img=ref_image,m_style=5)
+                      final_image,_,_=refine_proxy(blended_latent=edited_latent, src_image=src_image, ref_img=visual_global_list[-1],m_style=5)
                       #Print metric score
-                      lpips_score = loss_builder._loss_lpips(src_image, final_image)
+                      lpips_score = loss_builder._loss_lpips(src_image, final_image).items()
                       ssim_score = calculate_ssim_score_skimage(src_image,final_image)
                       print(f'LPIPS score: {lpips_score} \t SSIM score: {ssim_score}')
                       #Save score as format: source_name, target_name, lpips_score, ssim_score
