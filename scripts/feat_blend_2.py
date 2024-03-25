@@ -12,7 +12,7 @@ img_transforms = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
 
-def hairstyle_feature_blending(generator, seg, src_image, visual_mask, latent_bald, latent_global=None):
+def hairstyle_feature_blending_2(generator, seg, src_image, visual_mask, latent_bald, latent_global=None):
 
     if latent_global is not None:
         bald_feature = generator.decoder.synthesis(latent_bald, noise_mode='const')

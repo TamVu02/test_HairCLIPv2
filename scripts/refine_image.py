@@ -7,9 +7,9 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from criteria.transfer_loss import TransferLossBuilder
 
-class Refine_image(torch.nn.Module):
+class RefineProxy(torch.nn.Module):
     def __init__(self, opts, generator, seg):
-        super(Refine_image, self).__init__()
+        super(RefineProxy, self).__init__()
         self.opts = opts
         self.generator = generator
         self.seg = seg
@@ -66,7 +66,7 @@ class Refine_image(torch.nn.Module):
         for i in pbar:
             optimizer.zero_grad()
             latent_in = torch.cat([blended_latent[:, :m_style, :], latent_end], dim=1)
-            img_gen = self.generator.synthesis(latent_in, noise_mode='const')
+            img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
             #Hair loss
             img_gen_256_hair, gen_hairmask_256 = self.gen_256_img_hairmask(img_gen)
             hair_style_loss = self.transfer_loss_builder.style_loss(ref_img_256, img_gen_256_hair, mask1=ref_hairmask_256, mask2=gen_hairmask_256)
@@ -84,10 +84,9 @@ class Refine_image(torch.nn.Module):
             latent_prev = blended_latent[:, :m_style, :].clone().detach()
             loss.backward()
             optimizer.step()
-            pbar.set_description((f"ref_loss: {loss.item():.4f};"))
+            pbar.set_description((f"refine_loss: {loss.item():.4f};"))
             if (i % visual_interval == 0) or (i == (self.opts.steps_ref-1)):
                 with torch.no_grad():
-                    img_gen = self.generator.synthesis(latent_in, noise_mode='const')
+                    img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
                     visual_list.append(process_display_input(img_gen))
-
         return img_gen, latent_in, visual_list
