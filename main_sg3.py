@@ -34,7 +34,9 @@ def calculate_ssim_score_skimage(src_tensor, ref_tensor):
 def main(args):
     #Load args
     opts = Options().parse(jupyter=True)
-    print(args)
+    #print(args)
+    opts.FS_steps=200
+    opts.lr_embedding=0.015
 
     #Define image transform
     image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
