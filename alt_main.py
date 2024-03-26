@@ -104,7 +104,7 @@ def main(args):
                       img_output = Image.fromarray(process_display_input(final_image))
                       im_path = os.path.join(args.save_output_dir, f'{src_name}_{target_name}_refine.png')
                       img_output.save(im_path)
-                      print(f'Done saving output {src_name}_{target_name}.png to {args.save_output_dir}')
+                      print(f'Done saving output {src_name}_{target_name}_refine.png to {args.save_output_dir}')
                 else:
                     print(f'Image target {target_name}.png does not exit in {opts.src_img_dir}')
         else:
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='HairGAN')
 
-    parser.add_argument('--save_output_dir', type=str ,default='/content/drive/MyDrive/HairGAN/Final_HairGAN/output_img',help='directory for saving images after blending')
+    parser.add_argument('--save_output_dir', type=str ,default='/content/drive/MyDrive/HairGAN/Final_HairGAN/output_img/refine',help='directory for saving images after blending')
     parser.add_argument('--img_list', type=str,nargs='+',help='image list eg: 00004 00006 00131 03177')
     parser.add_argument('--output_result', type=str, default='/content/drive/MyDrive/HairGAN/Final_HairGAN/output_img/result_metric.csv', help='csv file for saving metric result')
 
