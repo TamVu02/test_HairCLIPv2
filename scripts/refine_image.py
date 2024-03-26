@@ -6,6 +6,7 @@ from utils.image_utils import process_display_input
 import torch.nn.functional as F
 from tqdm import tqdm
 from criteria.transfer_loss import TransferLossBuilder
+from torchvision import transforms
 
 class RefineProxy(torch.nn.Module):
     def __init__(self, opts, generator, seg):
@@ -37,13 +38,17 @@ class RefineProxy(torch.nn.Module):
         return self.kp_extractor.face_alignment_net(((F.interpolate(input_image, size=(256, 256)) + 1) / 2).clamp(0, 1))
 
     def gen_256_img_hairmask(self, input_image): 
+        # image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]) 
+        # input_image = image_transform(input_image).unsqueeze(0).cuda()
         input_seg = torch.argmax(self.seg(input_image)[0].clone().detach(), dim=1).long()
         input_hairmask = torch.where((input_seg == 10), torch.ones_like(input_seg), torch.zeros_like(input_seg))
         input_hairmask_256 = F.interpolate(input_hairmask.unsqueeze(0).float(), size=(256, 256))
         input_img_256 = F.interpolate(input_image, size=(256, 256))
         return input_img_256, input_hairmask_256
     
-    def gen_256_img_facemask(self, input_image): 
+    def gen_256_img_facemask(self, input_image):
+        # image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]) 
+        # input_image = image_transform(input_image).unsqueeze(0).cuda()
         input_seg = torch.argmax(self.seg(input_image)[0].clone().detach(), dim=1).long()
         input_hairmask = torch.where((input_seg == 10), torch.ones_like(input_seg), torch.zeros_like(input_seg))
         input_earmask = torch.where((input_seg == 6), torch.ones_like(input_seg), torch.zeros_like(input_seg))
@@ -53,8 +58,11 @@ class RefineProxy(torch.nn.Module):
         return input_img_256, input_face_256
 
     def forward(self, blended_latent, src_image, ref_img,m_style=6):
+        image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]) 
+        ref_img = image_transform(ref_img).unsqueeze(0).cuda()
         ref_img_256, ref_hairmask_256 = self.gen_256_img_hairmask(ref_img)
         source_img_256, source_facemask_256 = self.gen_256_img_facemask(src_image)
+        blended_latent=blended_latent.requires_grad_(True)
         optimizer = torch.optim.Adam([blended_latent], lr=self.opts.lr_refine)
         latent_end = blended_latent[:, m_style:, :].clone().detach()
         latent_prev = blended_latent[:, :m_style, :].clone().detach()
