@@ -28,7 +28,7 @@ def open_csv_file(file_path):
 # Calculate SSIM score using skimage
 def calculate_ssim_score_skimage(src_tensor, ref_tensor):
     src_np = src_tensor.squeeze().permute(1, 2, 0).cpu().numpy()
-    ref_np = ref_tensor.squeeze().permute(1, 2, 0).cpu().numpy() 
+    ref_np = ref_tensor.squeeze().permute(1, 2, 0).cpu().detach().numpy()
     ssim_score = ssim(src_np, ref_np, multichannel = True)
     return ssim_score
 
@@ -36,6 +36,8 @@ def main(args):
     #Load args
     opts = Options().parse(jupyter=True)
     opts.FS_steps=100
+    opts.steps_ref=300
+    opts.steps_refine=400
 
     #Define image transform
     image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
@@ -93,14 +95,14 @@ def main(args):
                       #Refine blending image
                       final_image,_,_=refine_proxy(blended_latent=edited_latent, src_image=src_image, ref_img=visual_global_list[-1],m_style=5)
                       #Print metric score
-                      lpips_score = loss_builder._loss_lpips(src_image, final_image).items()
+                      lpips_score = loss_builder._loss_lpips(src_image, final_image).item()
                       ssim_score = calculate_ssim_score_skimage(src_image,final_image)
                       print(f'LPIPS score: {lpips_score} \t SSIM score: {ssim_score}')
                       #Save score as format: source_name, target_name, lpips_score, ssim_score
                       csv_writer.writerow([src_name, target_name, lpips_score, ssim_score])
                       #Save output image
                       img_output = Image.fromarray(process_display_input(final_image))
-                      im_path = os.path.join(args.save_output_dir, f'{src_name}_{target_name}.png')
+                      im_path = os.path.join(args.save_output_dir, f'{src_name}_{target_name}_refine.png')
                       img_output.save(im_path)
                       print(f'Done saving output {src_name}_{target_name}.png to {args.save_output_dir}')
                 else:
