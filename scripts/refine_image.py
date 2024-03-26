@@ -68,17 +68,17 @@ class RefineProxy(torch.nn.Module):
         source_img_256, source_facemask_256 = self.gen_256_img_facemask(src_image)
         blended_latent=blended_latent.requires_grad_(True)
         optimizer = torch.optim.Adam([blended_latent], lr=self.opts.lr_refine)
-        latent_end = blended_latent[:, m_style:, :].clone().detach()
-        latent_prev = blended_latent[:, :m_style, :].clone().detach()
-        src_kp = self.inference_on_kp_extractor(src_image).clone().detach()
+        #latent_end = blended_latent[:, m_style:, :].clone().detach()
+        #latent_prev = blended_latent[:, :m_style, :].clone().detach()
+        #src_kp = self.inference_on_kp_extractor(src_image).clone().detach()
 
         visual_list = []
         visual_interval = self.opts.steps_refine // self.opts.visual_num_ref
         pbar = tqdm(range(self.opts.steps_refine))
         for i in pbar:
             optimizer.zero_grad()
-            latent_in = torch.cat([blended_latent[:, :m_style, :], latent_end], dim=1)
-            img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
+            #latent_in = torch.cat([blended_latent[:, :m_style, :], latent_end], dim=1)
+            img_gen = self.generator.decoder.synthesis(blended_latent, noise_mode='const')
             img_gen_256 = F.interpolate(img_gen, size=(256, 256))
             #Hair loss
             # img_gen_256_hair, gen_hairmask_256 = self.gen_256_img_hairmask(img_gen)
@@ -89,21 +89,23 @@ class RefineProxy(torch.nn.Module):
             # face_loss = self.transfer_loss_builder.style_loss(source_img_256, img_gen_256_face, mask1=source_facemask_256, mask2=gen_facemask_256)
             no_hair_region = (1 - ref_hairmask_256) * (1 - source_hairmask_256)
             face_loss = self.percept_with_mask(img_gen_256, source_img_256,mask=no_hair_region)
+            #mask loss
+            
 
-            delta_w_loss = self.delta_loss(blended_latent[:, :m_style, :], latent_prev)
+            #delta_w_loss = self.delta_loss(blended_latent[:, :m_style, :], latent_prev)
 
             # gen_kp = self.inference_on_kp_extractor(img_gen)
             # kp_loss = self.landmark_loss(src_kp[:, :], gen_kp[:, :])
 
             #loss = self.opts.style_lambda_ref * (hair_loss + face_loss) + self.opts.delta_w_lambda_ref * delta_w_loss + self.opts.landmark_lambda_ref * kp_loss
-            loss=hair_loss+face_loss
+            loss = hair_loss + face_loss
             
-            latent_prev = blended_latent[:, :m_style, :].clone().detach()
+            #latent_prev = blended_latent[:, :m_style, :].clone().detach()
             loss.backward()
             optimizer.step()
             pbar.set_description((f"refine_loss: {loss.item():.4f};"))
             if (i % visual_interval == 0) or (i == (self.opts.steps_ref-1)):
                 with torch.no_grad():
-                    img_gen = self.generator.decoder.synthesis(latent_in, noise_mode='const')
+                    img_gen = self.generator.decoder.synthesis(blended_latent, noise_mode='const')
                     visual_list.append(process_display_input(img_gen))
-        return img_gen, latent_in, visual_list
+        return img_gen, blended_latent, visual_list
