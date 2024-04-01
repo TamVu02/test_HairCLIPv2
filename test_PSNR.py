@@ -1,10 +1,12 @@
-# import the cv2 as well as numpy library
-import cv2
+
 import numpy as np
+from PIL import Image
+from torchvision import transforms
+
+# image_transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
 # Create a function that takes two images’ paths as a parameter
-def calculate_psnr(firstImage, secondImage):
-   # Compute the difference between corresponding pixels
-   diff = np.subtract(firstImage, secondImage)
+def calculate_psnr(src_tensor, ref_tensor):
+
    # Get the square of the difference
    squared_diff = np.square(diff)
 
@@ -17,24 +19,13 @@ def calculate_psnr(firstImage, secondImage):
     
    return psnr
 
-# Resize images to a common size
-rHeight = 256
-rWidth = 256
+src_image = Image.open('niqe-master/test_imgs/00734.png').convert('RGB')
+ref_image = Image.open('niqe-master/test_imgs/00734_00836_refine_3.png').convert('RGB')
 
-# Read the original and distorted images
-firstI = cv2.imread('niqe-master/test_imgs/00734_00836_refine_3.png')
-secondI = cv2.imread('niqe-master/test_imgs/00734.png')
-
-# Check if images are loaded successfully
-if firstI is None or secondI is None:
-    print("Failed to load one or both images.")
-else:
-   # Resize images for first image
-    firstI = cv2.resize(firstI, (rWidth, rHeight))
-   # Resize the details for second image
-    secondI = cv2.resize(secondI, (rWidth, rHeight))
-    
+if src_image is None or ref_image is None:
+   print("Failed to load one or both images.")
+else:   
    # Call the above function and perform the calculation
-    psnr_score = calculate_psnr(firstI, secondI)
+   psnr_score = calculate_psnr(src_image, ref_image)
    # Display the result
-    print("PSNR:", psnr_score)
+   print("PSNR:", psnr_score)
